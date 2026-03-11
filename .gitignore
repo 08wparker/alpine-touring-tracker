@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment
+.env.local
+.env*.local
+
+# Strava bulk export data (497MB+)
+bulk_export_stava_example/
+
+# Photos and large media
+pictures/
+
+# OS files
+.DS_Store
+Thumbs.db
+.Rhistory
+
+# Debug
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# Trip data (user-generated)
+data/trips/
+
+# Hut geo info (KMZ exports)
+hut_geo_info/
+
+# App screenshots
+app screenshots/

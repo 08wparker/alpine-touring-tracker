@@ -1,0 +1,29 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sky background -->
+  <rect width="120" height="60" fill="#87CEEB"/>
+  
+  <!-- Snow cap -->
+  <polygon points="60,15 45,35 75,35" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1"/>
+  
+  <!-- Main mountain face (left) -->
+  <polygon points="60,15 20,80 45,35" fill="#6B7280" stroke="#4B5563" stroke-width="1"/>
+  
+  <!-- Main mountain face (right) -->
+  <polygon points="60,15 75,35 100,80" fill="#9CA3AF" stroke="#6B7280" stroke-width="1"/>
+  
+  <!-- Mountain shadow/depth -->
+  <polygon points="45,35 60,50 75,35 60,15" fill="#D1D5DB" stroke="#9CA3AF" stroke-width="1"/>
+  
+  <!-- Lower slopes -->
+  <polygon points="20,80 45,35 35,90" fill="#4B5563"/>
+  <polygon points="75,35 100,80 85,90" fill="#6B7280"/>
+  
+  <!-- Base/ground -->
+  <rect y="80" width="120" height="40" fill="#16A34A"/>
+  
+  <!-- Foreground trees -->
+  <polygon points="10,85 15,75 20,85" fill="#15803D"/>
+  <polygon points="25,90 30,80 35,90" fill="#15803D"/>
+  <polygon points="85,90 90,80 95,90" fill="#15803D"/>
+  <polygon points="100,85 105,75 110,85" fill="#15803D"/>
+</svg>

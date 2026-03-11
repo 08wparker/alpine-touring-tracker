@@ -1,0 +1,326 @@
+'use client'
+
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet'
+import { LatLngExpression } from 'leaflet'
+import L from 'leaflet'
+import { useState, useEffect } from 'react'
+import { bernerOberlandHuts, bernerOberlandSummits, jungfrauTourRoute } from '@/data/bernerOberland'
+import { Hut, Summit, RouteStage } from '@/data/hauteRoute'
+import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
+
+// Fix for default markers in Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
+  iconUrl: '/leaflet/marker-icon.png',
+  shadowUrl: '/leaflet/marker-shadow.png',
+})
+
+// Custom hut icon (regular huts)
+const hutIcon = new L.DivIcon({
+  html: `<div class="hut-marker">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#94a3b8" stroke="#ffffff" stroke-width="2"/>
+      <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
+    </svg>
+  </div>`,
+  className: 'custom-hut-icon',
+  iconSize: [20, 20],
+  iconAnchor: [10, 20],
+  popupAnchor: [0, -20]
+})
+
+// Custom visited hut icon (highlighted)
+const visitedHutIcon = new L.DivIcon({
+  html: `<div class="visited-hut-marker">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+      <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
+    </svg>
+  </div>`,
+  className: 'custom-visited-hut-icon',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -28]
+})
+
+// Custom summit icon
+const summitIcon = new L.DivIcon({
+  html: `<div class="summit-marker">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L22 20H2L12 2Z" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+      <circle cx="12" cy="12" r="2" fill="white"/>
+    </svg>
+  </div>`,
+  className: 'custom-summit-icon',
+  iconSize: [24, 24],
+  iconAnchor: [12, 24],
+  popupAnchor: [0, -24]
+})
+
+interface BernerOberlandMapProps {
+  className?: string
+}
+
+export default function BernerOberlandMap({ className = '' }: BernerOberlandMapProps) {
+  // Center the map on the Jungfrau region
+  const center: LatLngExpression = [46.55, 8.05]
+  const zoom = 10
+  
+  // State for bulk activities
+  const [bulkActivities, setBulkActivities] = useState<BulkActivity[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // Load bulk activities and detect GPS huts
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const activities = await loadBulkActivities('berner-oberland')
+        setBulkActivities(activities)
+        
+        console.log('Loaded bulk activities:', activities.length)
+        
+      } catch (error) {
+        console.error('Error loading bulk activities:', error)
+        // No fallback needed anymore
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadActivities()
+  }, [])
+
+  // Function to check if a hut was visited based on GPS track endpoints
+  const getVisitedHuts = () => {
+    const visitedHutIds = new Set<string>()
+    
+    bulkActivities.forEach(activity => {
+      // Skip activities that are exit days or likely not ending at huts
+      const isExitDay = activity.name.toLowerCase().includes('exit') || 
+                       activity.name.toLowerCase().includes('descent') ||
+                       activity.name.toLowerCase().includes('return')
+      
+      if (activity.track.points.length > 0 && !isExitDay) {
+        const endPoint = activity.track.points[activity.track.points.length - 1]
+        
+        // Check which hut is closest to the end point (within 300m for more precision)
+        bernerOberlandHuts.forEach(hut => {
+          const hutLat = hut.coordinates[1]
+          const hutLng = hut.coordinates[0]
+          const distance = getDistance(endPoint.lat, endPoint.lng, hutLat, hutLng)
+          
+          if (distance < 0.3) { // Within 300 meters
+            visitedHutIds.add(hut.id)
+            console.log(`Activity "${activity.name}" ended near ${hut.name} (${distance.toFixed(2)}km away)`)
+          }
+        })
+      }
+    })
+    
+    return visitedHutIds
+  }
+
+  // Helper function to calculate distance in kilometers
+  const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const R = 6371 // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLng = (lng2 - lng1) * Math.PI / 180
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLng/2) * Math.sin(dLng/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c
+  }
+
+  const visitedHuts = getVisitedHuts()
+
+
+
+  // Huts are now positioned using GPS track analysis where available
+
+  // No more generic routes - using only real GPS tracks
+
+  // Switzerland-Austria-Italy border coordinates (approximate) in the Bernese region
+  const swissBorder: LatLngExpression[] = [
+    [46.4000, 7.8000], // Western edge
+    [46.4500, 8.0000], // Central
+    [46.5000, 8.2000], // Eastern edge
+    [46.6000, 8.3000], // Northern border
+    [46.6500, 8.1000], // Back west
+    [46.6000, 7.9000], // Complete border
+  ]
+
+  return (
+    <div className={`${className} relative`}>
+      {/* Route Legend */}
+      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
+        <h4 className="font-bold mb-2">Map Features</h4>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-orange-500"></div>
+            <span>Real GPS Tracks</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-gray-500" style={{backgroundImage: 'repeating-linear-gradient(to right, #6b7280 0px, #6b7280 3px, transparent 3px, transparent 6px)'}}></div>
+            <span>Regional Border</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L22 20H2L12 2Z" fill="#dc2626" stroke="#ffffff" strokeWidth="2"/>
+                <circle cx="12" cy="12" r="2" fill="white"/>
+              </svg>
+            </div>
+            <span>Major Summits</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#2563eb" stroke="#ffffff" strokeWidth="2"/>
+                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
+              </svg>
+            </div>
+            <span>Huts You Stayed At</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#94a3b8" stroke="#ffffff" strokeWidth="2"/>
+                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
+              </svg>
+            </div>
+            <span>Other Huts</span>
+          </div>
+        </div>
+      </div>
+      
+      <MapContainer 
+        center={center} 
+        zoom={zoom} 
+        className="h-full w-full"
+        zoomControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {/* Hut markers */}
+        {bernerOberlandHuts.map((hut: any) => {
+          const isVisited = visitedHuts.has(hut.id)
+          const iconToUse = isVisited ? visitedHutIcon : hutIcon
+          
+          return (
+            <Marker 
+              key={hut.id} 
+              position={[hut.coordinates[1], hut.coordinates[0]]}
+              icon={iconToUse}
+            >
+              {/* Permanent tooltip for hut name */}
+              <Tooltip 
+                permanent 
+                direction="bottom" 
+                offset={[0, 10]}
+                className={`hut-label ${isVisited ? 'visited-hut-label' : 'unvisited-hut-label'}`}
+              >
+                <span className={`text-xs font-semibold ${isVisited ? 'text-blue-800' : 'text-gray-600'}`}>
+                  {hut.name}
+                </span>
+              </Tooltip>
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold text-lg">
+                    {isVisited ? '✅ ' : '🏠 '}{hut.name}
+                  </h3>
+                  {isVisited && <p className="text-sm text-green-600 font-semibold mb-2">You stayed here!</p>}
+                  <p className="text-sm text-gray-600 mb-2">{hut.elevation}m</p>
+                  <p className="text-sm mb-2">{hut.description}</p>
+                  <div className="text-sm">
+                    {hut.capacity > 0 && <p><strong>Capacity:</strong> {hut.capacity}</p>}
+                    {hut.season && <p><strong>Season:</strong> {hut.season}</p>}
+                    {hut.contact && <p><strong>Contact:</strong> {hut.contact}</p>}
+                    {hut.website && (
+                      <p><strong>Website:</strong> <a href={hut.website} target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline">Visit Website</a></p>
+                    )}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
+        
+        {/* GPS endpoint markers removed - no longer creating huts from endpoints */}
+        
+        {/* Summit markers */}
+        {bernerOberlandSummits.map((summit: Summit) => (
+          <Marker 
+            key={summit.id} 
+            position={[summit.coordinates[1], summit.coordinates[0]]}
+            icon={summitIcon}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold text-lg text-red-600">⛰️ {summit.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">{summit.elevation}m</p>
+                <p className="text-sm mb-2">{summit.description}</p>
+                <div className="text-sm">
+                  <p><strong>Prominence:</strong> {summit.prominence}m</p>
+                  <p><strong>Difficulty:</strong> {summit.difficulty}</p>
+                  {summit.firstAscent && <p><strong>First Ascent:</strong> {summit.firstAscent}</p>}
+                  <p><strong>Route Access:</strong> {summit.routeAccess.join(', ')}</p>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+        
+        {/* Regional Border */}
+        <Polyline 
+          positions={swissBorder}
+          color="#6b7280"
+          weight={2}
+          opacity={0.6}
+          dashArray="6, 6"
+        >
+          <Popup>
+            <div className="p-2">
+              <h3 className="font-bold">Bernese Oberland Region</h3>
+              <p className="text-sm">High alpine region of the Bernese Alps</p>
+            </div>
+          </Popup>
+        </Polyline>
+        
+        
+        {/* Real GPS tracks from bulk data */}
+        {bulkActivities.map((activity) => (
+          <Polyline 
+            key={`bulk-${activity.id}`}
+            positions={activity.polyline}
+            color="#f97316"
+            weight={4}
+            opacity={0.9}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold">🎿 {activity.name}</h3>
+                <p className="text-sm text-gray-600">Real GPS Track - {activity.track.type}</p>
+                <p className="text-sm mb-2">Actual backcountry ski tour from Strava data</p>
+                <div className="text-sm">
+                  <p><strong>Track Points:</strong> {activity.track.points.length}</p>
+                  <p><strong>Activity ID:</strong> {activity.id}</p>
+                  {activity.track.points.length > 0 && (
+                    <>
+                      <p><strong>Start Elevation:</strong> {activity.track.points[0].elevation?.toFixed(0)}m</p>
+                      <p><strong>End Elevation:</strong> {activity.track.points[activity.track.points.length - 1].elevation?.toFixed(0)}m</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
+      </MapContainer>
+    </div>
+  )
+}

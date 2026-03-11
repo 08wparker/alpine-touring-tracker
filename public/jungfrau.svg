@@ -1,0 +1,28 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sky background -->
+  <rect width="120" height="70" fill="#E0F2FE"/>
+  
+  <!-- Jungfrau (center peak) -->
+  <polygon points="60,20 45,50 75,50" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>
+  
+  <!-- Mönch (left peak) -->
+  <polygon points="40,25 25,55 55,55" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="1"/>
+  
+  <!-- Eiger (right peak) -->
+  <polygon points="80,30 95,60 65,60" fill="#E5E7EB" stroke="#D1D5DB" stroke-width="1"/>
+  
+  <!-- Glacier fields -->
+  <polygon points="25,55 45,50 60,20 75,50 95,60 85,90 35,90" fill="#F8FAFC" stroke="#D1D5DB" stroke-width="1"/>
+  
+  <!-- Rock faces -->
+  <polygon points="45,50 60,20 60,40" fill="#9CA3AF"/>
+  <polygon points="60,40 75,50 60,20" fill="#6B7280"/>
+  
+  <!-- Base/valley -->
+  <rect y="90" width="120" height="30" fill="#16A34A"/>
+  
+  <!-- Railway -->
+  <line x1="10" y1="100" x2="110" y2="100" stroke="#374151" stroke-width="2"/>
+  <circle cx="60" cy="100" r="3" fill="#374151"/>
+  <text x="60" y="115" text-anchor="middle" font-size="8" fill="#374151">Jungfraujoch</text>
+</svg>

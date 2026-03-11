@@ -1,0 +1,884 @@
+{
+  "allHuts": [
+    {
+      "name": "Oberaarjochhütte",
+      "coordinates": [
+        8.17302500000005,
+        46.526039
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Badushütte",
+      "coordinates": [
+        8.66839809999999,
+        46.6365737
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Berglihütte",
+      "coordinates": [
+        8.0206445,
+        46.5668057
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Bietschhornhütte AACB 2565m",
+      "coordinates": [
+        7.9392541,
+        46.3978877
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Blüemlisalphütte",
+      "coordinates": [
+        7.7781389,
+        46.5144014
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Bordierhütte SAC",
+      "coordinates": [
+        7.84979999999996,
+        46.1445
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Britannia hut SAC",
+      "coordinates": [
+        7.6124502,
+        45.9994252
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Brunnihütte",
+      "coordinates": [
+        8.41064570000003,
+        46.8408947
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Bächlitalhütte - SAC",
+      "coordinates": [
+        8.28265639999995,
+        46.5868854
+      ],
+      "elevation": null
+    },
+    {
+      "name": "La Cabane des Dix",
+      "coordinates": [
+        7.41785700000003,
+        46.011138
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Calandahütte SAC",
+      "coordinates": [
+        9.48217920000002,
+        46.8829962
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Camona da Maighels",
+      "coordinates": [
+        8.69006999999999,
+        46.6253
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna Adula CAS",
+      "coordinates": [
+        8.99579990000007,
+        46.4991
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Cas Basodino",
+      "coordinates": [
+        8.51409990000002,
+        46.4395833
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna Bovarina UTOE",
+      "coordinates": [
+        8.888438,
+        46.560075
+      ],
+      "elevation": null
+    },
+    {
+      "name": "SAC Cadlimohütte",
+      "coordinates": [
+        8.6948996,
+        46.5719093
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna Corno-Gries",
+      "coordinates": [
+        8.41003150000006,
+        46.46708
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna Cristallina",
+      "coordinates": [
+        8.52637700000002,
+        46.471889
+      ],
+      "elevation": null
+    },
+    {
+      "name": "<![CDATA[Capanna d'Alzasca CAS]]>",
+      "coordinates": [
+        8.3850943,
+        45.8643639
+      ],
+      "elevation": null
+    },
+    {
+      "name": "<![CDATA[Capanna da l'Albigna CAS]]>",
+      "coordinates": [
+        9.65512000000001,
+        46.3299
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna del Forno CAS",
+      "coordinates": [
+        9.70951939999998,
+        46.3317375
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna di Sciora",
+      "coordinates": [
+        9.4851466,
+        46.5550471
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Carschinahütte SAC",
+      "coordinates": [
+        9.827314,
+        47.007077
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Chamanna Cluozza",
+      "coordinates": [
+        10.1177572,
+        46.6628872
+      ],
+      "elevation": null
+    },
+    {
+      "name": "<![CDATA[Chamanna d'Es-cha]]>",
+      "coordinates": [
+        9.90285370000004,
+        46.6114551
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Lischana Hütte SAC",
+      "coordinates": [
+        10.3345232,
+        46.7655628
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Chamonna Tuoi CAS",
+      "coordinates": [
+        10.1324362,
+        46.8307191
+      ],
+      "elevation": null
+    },
+    {
+      "name": "<![CDATA[Chamonas d'Ela CAS]]>",
+      "coordinates": [
+        9.69196880000004,
+        46.6187542
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Lischana Hütte SAC",
+      "coordinates": [
+        10.3345232,
+        46.7655628
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Chelenalphütte",
+      "coordinates": [
+        8.43987379999999,
+        46.6717492
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Cufercalhütte SAC",
+      "coordinates": [
+        9.3590427,
+        46.5933581
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Doldenhornhütte",
+      "coordinates": [
+        7.69739400000003,
+        46.4868822
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Dossenhütte",
+      "coordinates": [
+        8.1694364,
+        46.6551937
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Fründenhütte SAC",
+      "coordinates": [
+        7.74181,
+        46.4836
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Glattalphütte",
+      "coordinates": [
+        8.87497370000006,
+        46.9168148
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Zwinglipasshütte SAC",
+      "coordinates": [
+        9.37620349999997,
+        47.2332194
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Glecksteinhütte",
+      "coordinates": [
+        8.096521,
+        46.6251159
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Hundsteinhütte SAC Säntis",
+      "coordinates": [
+        9.4222242,
+        47.25486
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Kesch-Hütte",
+      "coordinates": [
+        9.875171,
+        46.6470511
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Konkordiahütte",
+      "coordinates": [
+        8.05321100000003,
+        46.500441
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Lidernenhütte",
+      "coordinates": [
+        8.69256,
+        46.9352
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Monte Rosa Hut",
+      "coordinates": [
+        10.3200984,
+        45.9798892
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Mutthornhütte",
+      "coordinates": [
+        7.8301079,
+        46.4862468
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Berghaus Männdlenen",
+      "coordinates": [
+        10.1255428,
+        42.8303478
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Mönchsjoch Hütte",
+      "coordinates": [
+        8.00573350000002,
+        46.5547173
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Oberaletschhütte",
+      "coordinates": [
+        7.9738641,
+        46.4249239
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Bivouac des Pantalons Blancs",
+      "coordinates": [
+        7.36837,
+        46.0405
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Rotstockhütte",
+      "coordinates": [
+        7.8460702,
+        46.5524895
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Rugghubelhütte",
+      "coordinates": [
+        8.4627557,
+        46.8461725
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Capanna Scaletta",
+      "coordinates": [
+        8.94049150000001,
+        46.6076183
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Schreckhornhütte",
+      "coordinates": [
+        8.09872,
+        46.5818687
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Silvrettahütte SAC",
+      "coordinates": [
+        10.0414342,
+        46.8545346
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Terrihütte SAC",
+      "coordinates": [
+        9.00493000000006,
+        46.6346
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Topalihütte",
+      "coordinates": [
+        7.76205540000001,
+        46.1569901
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Trift hut 2520m, Section Bern SAC",
+      "coordinates": [
+        8.2542201,
+        46.7126947
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Wildhornhütte",
+      "coordinates": [
+        7.38801599999999,
+        46.3792564
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Wildstrubelhütte",
+      "coordinates": [
+        7.46813999999995,
+        46.3825999
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Windgällenhütte AACZ",
+      "coordinates": [
+        8.75578670000004,
+        46.790173
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Europahütte",
+      "coordinates": [
+        7.8059768,
+        46.105703
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Domhütte",
+      "coordinates": [
+        7.8171289,
+        46.1024162
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Biwak am Grassen SAC",
+      "coordinates": [
+        8.44675000000007,
+        46.7701
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Leglerhütte",
+      "coordinates": [
+        9.08018000000004,
+        46.9274
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Chamanna Coaz",
+      "coordinates": [
+        10.3046849,
+        45.8340595
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Suls-Lobhornhütte",
+      "coordinates": [
+        7.868979,
+        46.6185168
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Gspaltenhornhütte",
+      "coordinates": [
+        7.8104218,
+        46.5138041
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Hollandia Hut",
+      "coordinates": [
+        8.0284873,
+        46.5380512
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Peter Tscherrig Anenhütte (Anenhütte)",
+      "coordinates": [
+        7.91164200000003,
+        46.454524
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Wiwannihütte",
+      "coordinates": [
+        7.8618175,
+        46.3446984
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Lötschenpasshütte",
+      "coordinates": [
+        7.71685419999994,
+        46.4163056
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Guggihütte",
+      "coordinates": [
+        7.9743604,
+        46.5627074
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Monte-Leone-Hütte SAC",
+      "coordinates": [
+        7.3309858,
+        45.9667535
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Länta Hütte SAC",
+      "coordinates": [
+        9.04174999999998,
+        46.5416
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Albert-Heim-Hütte",
+      "coordinates": [
+        8.4256231,
+        46.6740765
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Naturfreundehaus Feldkircher Hütte",
+      "coordinates": [
+        9.6006348,
+        47.2095687
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Mürren",
+      "coordinates": [
+        7.8965522,
+        46.5614473
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Chamanna da Grialetsch CAS",
+      "coordinates": [
+        9.96058,
+        46.7101065
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Refuge du Lac de Deborence",
+      "coordinates": [
+        7.2146497,
+        46.2800577
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Cabane Rambert",
+      "coordinates": [
+        7.1341607,
+        46.2302371
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Sorniot cabin",
+      "coordinates": [
+        7.0946507,
+        46.1703595
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Blüemlisalphütte SAC",
+      "coordinates": [
+        7.7717084,
+        46.5102283
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Schönbielhütte SAC",
+      "coordinates": [
+        7.6289875,
+        46.0019593
+      ],
+      "elevation": null
+    },
+    {
+      "name": "Point 82",
+      "coordinates": [
+        8.167818,
+        46.656756
+      ],
+      "elevation": null
+    }
+  ],
+  "relevantHuts": {
+    "berner-oberland": [
+      {
+        "name": "Oberaarjochhütte",
+        "coordinates": [
+          8.17302500000005,
+          46.526039
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Berglihütte",
+        "coordinates": [
+          8.0206445,
+          46.5668057
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Bächlitalhütte - SAC",
+        "coordinates": [
+          8.28265639999995,
+          46.5868854
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Dossenhütte",
+        "coordinates": [
+          8.1694364,
+          46.6551937
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Glecksteinhütte",
+        "coordinates": [
+          8.096521,
+          46.6251159
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Konkordiahütte",
+        "coordinates": [
+          8.05321100000003,
+          46.500441
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Mutthornhütte",
+        "coordinates": [
+          7.8301079,
+          46.4862468
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Mönchsjoch Hütte",
+        "coordinates": [
+          8.00573350000002,
+          46.5547173
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Oberaletschhütte",
+        "coordinates": [
+          7.9738641,
+          46.4249239
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Rotstockhütte",
+        "coordinates": [
+          7.8460702,
+          46.5524895
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Schreckhornhütte",
+        "coordinates": [
+          8.09872,
+          46.5818687
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Suls-Lobhornhütte",
+        "coordinates": [
+          7.868979,
+          46.6185168
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Gspaltenhornhütte",
+        "coordinates": [
+          7.8104218,
+          46.5138041
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Hollandia Hut",
+        "coordinates": [
+          8.0284873,
+          46.5380512
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Peter Tscherrig Anenhütte (Anenhütte)",
+        "coordinates": [
+          7.91164200000003,
+          46.454524
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Guggihütte",
+        "coordinates": [
+          7.9743604,
+          46.5627074
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Mürren",
+        "coordinates": [
+          7.8965522,
+          46.5614473
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Point 82",
+        "coordinates": [
+          8.167818,
+          46.656756
+        ],
+        "elevation": null
+      }
+    ],
+    "haute-route": [
+      {
+        "name": "Britannia hut SAC",
+        "coordinates": [
+          7.6124502,
+          45.9994252
+        ],
+        "elevation": null
+      },
+      {
+        "name": "La Cabane des Dix",
+        "coordinates": [
+          7.41785700000003,
+          46.011138
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Bivouac des Pantalons Blancs",
+        "coordinates": [
+          7.36837,
+          46.0405
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Topalihütte",
+        "coordinates": [
+          7.76205540000001,
+          46.1569901
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Monte-Leone-Hütte SAC",
+        "coordinates": [
+          7.3309858,
+          45.9667535
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Sorniot cabin",
+        "coordinates": [
+          7.0946507,
+          46.1703595
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Schönbielhütte SAC",
+        "coordinates": [
+          7.6289875,
+          46.0019593
+        ],
+        "elevation": null
+      }
+    ],
+    "silvretta": [
+      {
+        "name": "Chamonna Tuoi CAS",
+        "coordinates": [
+          10.1324362,
+          46.8307191
+        ],
+        "elevation": null
+      },
+      {
+        "name": "Silvrettahütte SAC",
+        "coordinates": [
+          10.0414342,
+          46.8545346
+        ],
+        "elevation": null
+      }
+    ]
+  }
+}

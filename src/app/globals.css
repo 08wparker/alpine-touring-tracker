@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styling for summit markers */
+.custom-summit-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.summit-marker {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.summit-marker:hover {
+  transform: scale(1.1);
+}
+
+/* Custom styling for hut markers */
+.custom-hut-icon, .custom-visited-hut-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.hut-marker, .visited-hut-marker {
+  filter: drop-shadow(1px 1px 3px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.hut-marker:hover, .visited-hut-marker:hover {
+  transform: scale(1.1);
+}
+
+/* Custom styling for hut labels */
+.hut-label {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.visited-hut-label {
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-color: #3b82f6 !important;
+}
+
+.unvisited-hut-label {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: #d1d5db !important;
+}
