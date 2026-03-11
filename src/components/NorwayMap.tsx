@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { LatLngExpression } from 'leaflet'
 import L from 'leaflet'
 import { useState, useEffect } from 'react'
-import { norwayHuts, norwaySummits, norwayTourRoute } from '@/data/norway'
-import { Hut, Summit, RouteStage } from '@/data/hauteRoute'
+import { norwayHuts, norwaySummits } from '@/data/norway'
+import { Hut, Summit } from '@/data/hauteRoute'
 import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
 import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
@@ -87,33 +87,6 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
     loadActivities()
   }, [])
 
-  // Helper function to create route lines
-  const createRouteLines = (stages: RouteStage[], color: string, routeType: string) => {
-    return stages.map((stage: RouteStage) => {
-      const startHut = norwayHuts.find(h => h.id === stage.startHut)
-      const endHut = norwayHuts.find(h => h.id === stage.endHut)
-
-      if (!startHut || !endHut) return null
-
-      // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
-      const positions: LatLngExpression[] = [
-        [startHut.coordinates[1], startHut.coordinates[0]],
-        ...stage.waypoints.map(wp => [wp.coordinates[1], wp.coordinates[0]] as LatLngExpression),
-        [endHut.coordinates[1], endHut.coordinates[0]]
-      ]
-
-      return {
-        id: stage.id,
-        positions,
-        stage,
-        color,
-        routeType
-      }
-    }).filter(Boolean)
-  }
-
-  const norwayRouteLines = createRouteLines(norwayTourRoute, '#15803d', 'Romsdalsfjorden Tour')
-
   // Romsdalsfjorden coastline (simplified)
   const fjordOutline: LatLngExpression[] = [
     [62.70, 6.80],
@@ -132,10 +105,6 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
       <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
         <h4 className="font-bold mb-2">Map Features</h4>
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-green-700"></div>
-            <span>Romsdalsfjorden Tour</span>
-          </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-orange-500"></div>
             <span>Real GPS Tracks</span>
@@ -231,33 +200,6 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
             </div>
           </Popup>
         </Polyline>
-
-        {/* Route lines */}
-        {norwayRouteLines.map((route) =>
-          route && (
-            <Polyline
-              key={route.id}
-              positions={route.positions}
-              color={route.color}
-              weight={3}
-              opacity={0.8}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-bold">{route.stage.name}</h3>
-                  <p className="text-sm text-gray-600">{route.routeType} - Day {route.stage.day}</p>
-                  <p className="text-sm mb-2">{route.stage.description}</p>
-                  <div className="text-sm">
-                    <p><strong>Distance:</strong> {route.stage.distance}km</p>
-                    <p><strong>Duration:</strong> {route.stage.duration}</p>
-                    <p><strong>Difficulty:</strong> {route.stage.difficulty}</p>
-                    <p><strong>Elevation gain:</strong> {route.stage.elevationGain}m</p>
-                  </div>
-                </div>
-              </Popup>
-            </Polyline>
-          )
-        )}
 
         {/* Real GPS tracks from bulk data */}
         {bulkActivities.map((activity) => (

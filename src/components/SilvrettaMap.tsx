@@ -4,9 +4,12 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { LatLngExpression } from 'leaflet'
 import L from 'leaflet'
 import { useState, useEffect } from 'react'
-import { silvrettaHuts, silvrettaSummits, silvrettaTourRoute } from '@/data/silvretta'
-import { Hut, Summit, RouteStage } from '@/data/hauteRoute'
+import { silvrettaHuts, silvrettaSummits } from '@/data/silvretta'
+import { Hut, Summit } from '@/data/hauteRoute'
 import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
+import { GeoPhoto } from '@/lib/photoGeo'
+import { Trip } from '@/types/trip'
+import PhotoMarker from './PhotoMarker'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -44,19 +47,27 @@ const summitIcon = new L.DivIcon({
   popupAnchor: [0, -24]
 })
 
-interface SilvrettaMapProps {
-  className?: string
+interface DecodedTrack {
+  id: number
+  name: string
+  polyline: [number, number][]
 }
 
-export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
+interface SilvrettaMapProps {
+  className?: string
+  photos?: GeoPhoto[]
+  trip?: Trip | null
+  userTracks?: DecodedTrack[]
+}
+
+export default function SilvrettaMap({ className = '', photos = [], trip, userTracks = [] }: SilvrettaMapProps) {
   // Center the map on the Silvretta region
   const center: LatLngExpression = [46.87, 10.1]
   const zoom = 10
-  
+
   // State for bulk activities
   const [bulkActivities, setBulkActivities] = useState<BulkActivity[]>([])
-  const [loading, setLoading] = useState(true)
-  
+
   // Load bulk activities on component mount
   useEffect(() => {
     const loadActivities = async () => {
@@ -65,54 +76,21 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
         setBulkActivities(activities)
       } catch (error) {
         console.error('Error loading bulk activities:', error)
-      } finally {
-        setLoading(false)
       }
     }
-    
     loadActivities()
   }, [])
 
-  // Helper function to create route lines
-  const createRouteLines = (stages: RouteStage[], color: string, routeType: string) => {
-    return stages.map((stage: RouteStage) => {
-      const startHut = silvrettaHuts.find(h => h.id === stage.startHut)
-      const endHut = silvrettaHuts.find(h => h.id === stage.endHut)
-      
-      if (!startHut || !endHut) return null
-      
-      // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
-      const positions: LatLngExpression[] = [
-        [startHut.coordinates[1], startHut.coordinates[0]],
-        ...stage.waypoints.map(wp => [wp.coordinates[1], wp.coordinates[0]] as LatLngExpression),
-        [endHut.coordinates[1], endHut.coordinates[0]]
-      ]
-      
-      return {
-        id: stage.id,
-        positions,
-        stage,
-        color,
-        routeType
-      }
-    }).filter(Boolean)
-  }
-
-  // Create route lines for Silvretta circuit
-  const silvrettaRouteLines = createRouteLines(silvrettaTourRoute, '#15803d', 'Silvretta High Route')
-  
-  const allRouteLines = [...silvrettaRouteLines]
-
   // Austria-Switzerland border coordinates in the Silvretta region
   const silvrettaBorder: LatLngExpression[] = [
-    [46.8200, 9.9000], // Western edge
-    [46.8400, 10.0000], // Central west
-    [46.8500, 10.1000], // Central
-    [46.8600, 10.1500], // Central east
-    [46.8800, 10.2000], // Eastern edge
-    [46.9000, 10.1800], // Northern turn
-    [46.9200, 10.1000], // Back west
-    [46.8800, 9.9500], // Complete border
+    [46.8200, 9.9000],
+    [46.8400, 10.0000],
+    [46.8500, 10.1000],
+    [46.8600, 10.1500],
+    [46.8800, 10.2000],
+    [46.9000, 10.1800],
+    [46.9200, 10.1000],
+    [46.8800, 9.9500],
   ]
 
   return (
@@ -121,10 +99,6 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
       <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
         <h4 className="font-bold mb-2">Map Features</h4>
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-green-700"></div>
-            <span>Silvretta High Route</span>
-          </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-orange-500"></div>
             <span>Real GPS Tracks</span>
@@ -153,10 +127,10 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
           </div>
         </div>
       </div>
-      
-      <MapContainer 
-        center={center} 
-        zoom={zoom} 
+
+      <MapContainer
+        center={center}
+        zoom={zoom}
         className="h-full w-full"
         zoomControl={true}
       >
@@ -164,17 +138,17 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         {/* Hut markers */}
         {silvrettaHuts.map((hut: Hut) => (
-          <Marker 
-            key={hut.id} 
+          <Marker
+            key={hut.id}
             position={[hut.coordinates[1], hut.coordinates[0]]}
             icon={hutIcon}
           >
             <Popup>
               <div className="p-2">
-                <h3 className="font-bold text-lg">🏠 {hut.name}</h3>
+                <h3 className="font-bold text-lg">{hut.name}</h3>
                 <p className="text-sm text-gray-600 mb-2">{hut.elevation}m</p>
                 <p className="text-sm mb-2">{hut.description}</p>
                 <div className="text-sm">
@@ -189,17 +163,17 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
             </Popup>
           </Marker>
         ))}
-        
+
         {/* Summit markers */}
         {silvrettaSummits.map((summit: Summit) => (
-          <Marker 
-            key={summit.id} 
+          <Marker
+            key={summit.id}
             position={[summit.coordinates[1], summit.coordinates[0]]}
             icon={summitIcon}
           >
             <Popup>
               <div className="p-2">
-                <h3 className="font-bold text-lg text-red-600">⛰️ {summit.name}</h3>
+                <h3 className="font-bold text-lg text-red-600">{summit.name}</h3>
                 <p className="text-sm text-gray-600 mb-2">{summit.elevation}m</p>
                 <p className="text-sm mb-2">{summit.description}</p>
                 <div className="text-sm">
@@ -212,9 +186,9 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
             </Popup>
           </Marker>
         ))}
-        
+
         {/* Regional Border */}
-        <Polyline 
+        <Polyline
           positions={silvrettaBorder}
           color="#6b7280"
           weight={2}
@@ -228,37 +202,10 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
             </div>
           </Popup>
         </Polyline>
-        
-        {/* Route lines */}
-        {allRouteLines.map((route) => 
-          route && (
-            <Polyline 
-              key={route.id}
-              positions={route.positions}
-              color={route.color}
-              weight={3}
-              opacity={0.8}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-bold">{route.stage.name}</h3>
-                  <p className="text-sm text-gray-600">{route.routeType} - Day {route.stage.day}</p>
-                  <p className="text-sm mb-2">{route.stage.description}</p>
-                  <div className="text-sm">
-                    <p><strong>Distance:</strong> {route.stage.distance}km</p>
-                    <p><strong>Duration:</strong> {route.stage.duration}</p>
-                    <p><strong>Difficulty:</strong> {route.stage.difficulty}</p>
-                    <p><strong>Elevation gain:</strong> {route.stage.elevationGain}m</p>
-                  </div>
-                </div>
-              </Popup>
-            </Polyline>
-          )
-        )}
-        
+
         {/* Real GPS tracks from bulk data */}
         {bulkActivities.map((activity) => (
-          <Polyline 
+          <Polyline
             key={`bulk-${activity.id}`}
             positions={activity.polyline}
             color="#f97316"
@@ -267,12 +214,10 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
           >
             <Popup>
               <div className="p-2">
-                <h3 className="font-bold">🎿 {activity.name}</h3>
+                <h3 className="font-bold">{activity.name}</h3>
                 <p className="text-sm text-gray-600">Real GPS Track - {activity.track.type}</p>
-                <p className="text-sm mb-2">Actual backcountry ski tour from Strava data</p>
                 <div className="text-sm">
                   <p><strong>Track Points:</strong> {activity.track.points.length}</p>
-                  <p><strong>Activity ID:</strong> {activity.id}</p>
                   {activity.track.points.length > 0 && (
                     <>
                       <p><strong>Start Elevation:</strong> {activity.track.points[0].elevation?.toFixed(0)}m</p>
@@ -284,6 +229,50 @@ export default function SilvrettaMap({ className = '' }: SilvrettaMapProps) {
             </Popup>
           </Polyline>
         ))}
+
+        {/* User Strava tracks */}
+        {userTracks.map(track => (
+          <Polyline
+            key={`user-${track.id}`}
+            positions={track.polyline}
+            color="#f97316"
+            weight={4}
+            opacity={0.9}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold">{track.name}</h3>
+                <p className="text-sm text-gray-600">Strava GPS Track</p>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
+
+        {/* Photo markers */}
+        {photos.filter(p => p.coordinates).map(photo => (
+          <PhotoMarker key={photo.id} photo={photo} />
+        ))}
+
+        {/* Trip participant tracks */}
+        {trip?.participants.map(participant =>
+          participant.tracks.map(track => (
+            <Polyline
+              key={track.id}
+              positions={track.polyline}
+              color={participant.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: participant.color }}>{participant.name}</p>
+                  <p className="text-sm text-gray-500">{track.date}</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
       </MapContainer>
     </div>
   )

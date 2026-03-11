@@ -7,13 +7,15 @@ import { StravaAPI, StravaActivity } from '@/lib/strava'
 interface UserActivitiesProps {
   region?: 'haute-route' | 'berner-oberland' | 'ortler' | 'silvretta' | 'norway'
   onActivitySelect?: (activity: StravaActivity) => void
+  onActivitiesLoaded?: (activities: StravaActivity[]) => void
   selectedActivityId?: number
 }
 
-export default function UserActivities({ 
-  region, 
-  onActivitySelect, 
-  selectedActivityId 
+export default function UserActivities({
+  region,
+  onActivitySelect,
+  onActivitiesLoaded,
+  selectedActivityId
 }: UserActivitiesProps) {
   const { data: session } = useSession()
   const [activities, setActivities] = useState<StravaActivity[]>([])
@@ -47,6 +49,7 @@ export default function UserActivities({
         : skiTourActivities
 
       setActivities(regionActivities)
+      onActivitiesLoaded?.(regionActivities)
     } catch (err) {
       console.error('Error fetching activities:', err)
       setError('Failed to load activities from Strava')

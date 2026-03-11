@@ -35,17 +35,20 @@ export default function Norway() {
 
   const handleActivitySelect = useCallback((activity: StravaActivity) => {
     setSelectedActivity(activity)
-    // Decode the polyline and add to tracks
-    if (activity.map?.summary_polyline) {
-      const api = new StravaAPI(session?.accessToken || '')
-      const decoded = api.decodePolyline(activity.map.summary_polyline)
-      setUserTracks(prev => {
-        // Don't add duplicates
-        if (prev.find(t => t.id === activity.id)) return prev
-        return [...prev, { id: activity.id, name: activity.name, polyline: decoded }]
-      })
-    }
-  }, [session])
+  }, [])
+
+  // Auto-load all tracks when activities are fetched
+  const handleActivitiesLoaded = useCallback((activities: StravaActivity[]) => {
+    const api = new StravaAPI('')
+    const tracks: DecodedTrack[] = activities
+      .filter(a => a.map?.summary_polyline)
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        polyline: api.decodePolyline(a.map.summary_polyline)
+      }))
+    setUserTracks(tracks)
+  }, [])
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -77,6 +80,7 @@ export default function Norway() {
         <UserActivities
           region="norway"
           onActivitySelect={handleActivitySelect}
+          onActivitiesLoaded={handleActivitiesLoaded}
           selectedActivityId={selectedActivity?.id}
         />
       </div>

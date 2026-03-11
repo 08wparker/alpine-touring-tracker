@@ -4,9 +4,12 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react
 import { LatLngExpression } from 'leaflet'
 import L from 'leaflet'
 import { useState, useEffect } from 'react'
-import { bernerOberlandHuts, bernerOberlandSummits, jungfrauTourRoute } from '@/data/bernerOberland'
-import { Hut, Summit, RouteStage } from '@/data/hauteRoute'
+import { bernerOberlandHuts, bernerOberlandSummits } from '@/data/bernerOberland'
+import { Summit } from '@/data/hauteRoute'
 import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
+import { GeoPhoto } from '@/lib/photoGeo'
+import { Trip } from '@/types/trip'
+import PhotoMarker from './PhotoMarker'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -58,76 +61,77 @@ const summitIcon = new L.DivIcon({
   popupAnchor: [0, -24]
 })
 
-interface BernerOberlandMapProps {
-  className?: string
+interface DecodedTrack {
+  id: number
+  name: string
+  polyline: [number, number][]
 }
 
-export default function BernerOberlandMap({ className = '' }: BernerOberlandMapProps) {
+interface BernerOberlandMapProps {
+  className?: string
+  photos?: GeoPhoto[]
+  trip?: Trip | null
+  userTracks?: DecodedTrack[]
+}
+
+export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [] }: BernerOberlandMapProps) {
   // Center the map on the Jungfrau region
   const center: LatLngExpression = [46.55, 8.05]
   const zoom = 10
-  
+
   // State for bulk activities
   const [bulkActivities, setBulkActivities] = useState<BulkActivity[]>([])
   const [loading, setLoading] = useState(true)
-  
+
   // Load bulk activities and detect GPS huts
   useEffect(() => {
     const loadActivities = async () => {
       try {
         const activities = await loadBulkActivities('berner-oberland')
         setBulkActivities(activities)
-        
-        console.log('Loaded bulk activities:', activities.length)
-        
       } catch (error) {
         console.error('Error loading bulk activities:', error)
-        // No fallback needed anymore
       } finally {
         setLoading(false)
       }
     }
-    
     loadActivities()
   }, [])
 
   // Function to check if a hut was visited based on GPS track endpoints
   const getVisitedHuts = () => {
     const visitedHutIds = new Set<string>()
-    
+
     bulkActivities.forEach(activity => {
-      // Skip activities that are exit days or likely not ending at huts
-      const isExitDay = activity.name.toLowerCase().includes('exit') || 
+      const isExitDay = activity.name.toLowerCase().includes('exit') ||
                        activity.name.toLowerCase().includes('descent') ||
                        activity.name.toLowerCase().includes('return')
-      
+
       if (activity.track.points.length > 0 && !isExitDay) {
         const endPoint = activity.track.points[activity.track.points.length - 1]
-        
-        // Check which hut is closest to the end point (within 300m for more precision)
+
         bernerOberlandHuts.forEach(hut => {
           const hutLat = hut.coordinates[1]
           const hutLng = hut.coordinates[0]
           const distance = getDistance(endPoint.lat, endPoint.lng, hutLat, hutLng)
-          
-          if (distance < 0.3) { // Within 300 meters
+
+          if (distance < 0.3) {
             visitedHutIds.add(hut.id)
-            console.log(`Activity "${activity.name}" ended near ${hut.name} (${distance.toFixed(2)}km away)`)
           }
         })
       }
     })
-    
+
     return visitedHutIds
   }
 
   // Helper function to calculate distance in kilometers
   const getDistance = (lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371 // Earth's radius in km
+    const R = 6371
     const dLat = (lat2 - lat1) * Math.PI / 180
     const dLng = (lng2 - lng1) * Math.PI / 180
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
     return R * c
@@ -135,20 +139,14 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
 
   const visitedHuts = getVisitedHuts()
 
-
-
-  // Huts are now positioned using GPS track analysis where available
-
-  // No more generic routes - using only real GPS tracks
-
-  // Switzerland-Austria-Italy border coordinates (approximate) in the Bernese region
+  // Switzerland border coordinates (approximate) in the Bernese region
   const swissBorder: LatLngExpression[] = [
-    [46.4000, 7.8000], // Western edge
-    [46.4500, 8.0000], // Central
-    [46.5000, 8.2000], // Eastern edge
-    [46.6000, 8.3000], // Northern border
-    [46.6500, 8.1000], // Back west
-    [46.6000, 7.9000], // Complete border
+    [46.4000, 7.8000],
+    [46.4500, 8.0000],
+    [46.5000, 8.2000],
+    [46.6000, 8.3000],
+    [46.6500, 8.1000],
+    [46.6000, 7.9000],
   ]
 
   return (
@@ -194,10 +192,10 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
           </div>
         </div>
       </div>
-      
-      <MapContainer 
-        center={center} 
-        zoom={zoom} 
+
+      <MapContainer
+        center={center}
+        zoom={zoom}
         className="h-full w-full"
         zoomControl={true}
       >
@@ -205,22 +203,21 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         {/* Hut markers */}
         {bernerOberlandHuts.map((hut: any) => {
           const isVisited = visitedHuts.has(hut.id)
           const iconToUse = isVisited ? visitedHutIcon : hutIcon
-          
+
           return (
-            <Marker 
-              key={hut.id} 
+            <Marker
+              key={hut.id}
               position={[hut.coordinates[1], hut.coordinates[0]]}
               icon={iconToUse}
             >
-              {/* Permanent tooltip for hut name */}
-              <Tooltip 
-                permanent 
-                direction="bottom" 
+              <Tooltip
+                permanent
+                direction="bottom"
                 offset={[0, 10]}
                 className={`hut-label ${isVisited ? 'visited-hut-label' : 'unvisited-hut-label'}`}
               >
@@ -231,7 +228,7 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
               <Popup>
                 <div className="p-2">
                   <h3 className="font-bold text-lg">
-                    {isVisited ? '✅ ' : '🏠 '}{hut.name}
+                    {isVisited ? '' : ''}{hut.name}
                   </h3>
                   {isVisited && <p className="text-sm text-green-600 font-semibold mb-2">You stayed here!</p>}
                   <p className="text-sm text-gray-600 mb-2">{hut.elevation}m</p>
@@ -249,19 +246,17 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
             </Marker>
           )
         })}
-        
-        {/* GPS endpoint markers removed - no longer creating huts from endpoints */}
-        
+
         {/* Summit markers */}
         {bernerOberlandSummits.map((summit: Summit) => (
-          <Marker 
-            key={summit.id} 
+          <Marker
+            key={summit.id}
             position={[summit.coordinates[1], summit.coordinates[0]]}
             icon={summitIcon}
           >
             <Popup>
               <div className="p-2">
-                <h3 className="font-bold text-lg text-red-600">⛰️ {summit.name}</h3>
+                <h3 className="font-bold text-lg text-red-600">{summit.name}</h3>
                 <p className="text-sm text-gray-600 mb-2">{summit.elevation}m</p>
                 <p className="text-sm mb-2">{summit.description}</p>
                 <div className="text-sm">
@@ -274,9 +269,9 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
             </Popup>
           </Marker>
         ))}
-        
+
         {/* Regional Border */}
-        <Polyline 
+        <Polyline
           positions={swissBorder}
           color="#6b7280"
           weight={2}
@@ -290,11 +285,10 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
             </div>
           </Popup>
         </Polyline>
-        
-        
+
         {/* Real GPS tracks from bulk data */}
         {bulkActivities.map((activity) => (
-          <Polyline 
+          <Polyline
             key={`bulk-${activity.id}`}
             positions={activity.polyline}
             color="#f97316"
@@ -303,12 +297,10 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
           >
             <Popup>
               <div className="p-2">
-                <h3 className="font-bold">🎿 {activity.name}</h3>
+                <h3 className="font-bold">{activity.name}</h3>
                 <p className="text-sm text-gray-600">Real GPS Track - {activity.track.type}</p>
-                <p className="text-sm mb-2">Actual backcountry ski tour from Strava data</p>
                 <div className="text-sm">
                   <p><strong>Track Points:</strong> {activity.track.points.length}</p>
-                  <p><strong>Activity ID:</strong> {activity.id}</p>
                   {activity.track.points.length > 0 && (
                     <>
                       <p><strong>Start Elevation:</strong> {activity.track.points[0].elevation?.toFixed(0)}m</p>
@@ -320,6 +312,50 @@ export default function BernerOberlandMap({ className = '' }: BernerOberlandMapP
             </Popup>
           </Polyline>
         ))}
+
+        {/* User Strava tracks */}
+        {userTracks.map(track => (
+          <Polyline
+            key={`user-${track.id}`}
+            positions={track.polyline}
+            color="#f97316"
+            weight={4}
+            opacity={0.9}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold">{track.name}</h3>
+                <p className="text-sm text-gray-600">Strava GPS Track</p>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
+
+        {/* Photo markers */}
+        {photos.filter(p => p.coordinates).map(photo => (
+          <PhotoMarker key={photo.id} photo={photo} />
+        ))}
+
+        {/* Trip participant tracks */}
+        {trip?.participants.map(participant =>
+          participant.tracks.map(track => (
+            <Polyline
+              key={track.id}
+              positions={track.polyline}
+              color={participant.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: participant.color }}>{participant.name}</p>
+                  <p className="text-sm text-gray-500">{track.date}</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
       </MapContainer>
     </div>
   )
