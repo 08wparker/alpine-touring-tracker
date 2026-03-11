@@ -119,7 +119,9 @@ export class StravaAPI {
       'AlpineSki',
       'Alpine Ski',
       'Ski',
-      'Snowshoe'
+      'Snowshoe',
+      'Walk',
+      'Hike'
     ]
 
     return activities.filter(activity =>
@@ -168,9 +170,9 @@ export class StravaAPI {
         west: 10.4
       },
       'silvretta': {
-        north: 46.95,
+        north: 47.25,
         south: 46.80,
-        east: 10.20,
+        east: 10.30,
         west: 9.90
       },
       'norway': {
@@ -210,6 +212,43 @@ export class StravaAPI {
       if (batch.length < perPage) break
       page++
       if (page > 10) break // safety limit
+    }
+
+    return allActivities
+  }
+
+  // Get all activities (no time filter, paginated, handles rate limits)
+  async getAllActivities(): Promise<StravaActivity[]> {
+    const allActivities: StravaActivity[] = []
+    let page = 1
+    const perPage = 200
+
+    while (true) {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString(),
+      })
+
+      const response = await fetch(`https://www.strava.com/api/v3/athlete/activities?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      })
+
+      if (response.status === 429) {
+        console.warn(`Strava rate limit hit on page ${page}, returning ${allActivities.length} activities fetched so far`)
+        break
+      }
+
+      if (!response.ok) {
+        throw new Error(`Strava API error: ${response.status}`)
+      }
+
+      const batch = await response.json()
+      allActivities.push(...batch)
+      if (batch.length < perPage) break
+      page++
+      if (page > 30) break // safety limit
     }
 
     return allActivities

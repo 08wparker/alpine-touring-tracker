@@ -21,6 +21,12 @@ const RELEVANT_ACTIVITIES = [
     region: 'berner-oberland'
   },
   {
+    id: '8934764294',
+    name: 'Afternoon Backcountry Ski',
+    filename: 'activities/8934764294.gpx',
+    region: 'berner-oberland'
+  },
+  {
     id: '8934764827',
     name: 'Exit from Berner Oberland',
     filename: 'activities/8934764827.gpx',

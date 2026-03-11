@@ -3,17 +3,13 @@
 import dynamic from 'next/dynamic'
 import { useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { GeoPhoto } from '@/lib/photoGeo'
-import { Trip } from '@/types/trip'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
 
-const RouteMap = dynamic(() => import('@/components/RouteMap'), {
+const BernerOberlandMap = dynamic(() => import('@/components/BernerOberlandMap'), {
   ssr: false,
   loading: () => <div className="h-96 bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">Loading map...</div>
 })
 
-const PhotoUpload = dynamic(() => import('@/components/PhotoUpload'), { ssr: false })
-const TripManager = dynamic(() => import('@/components/TripManager'), { ssr: false })
 const UserActivities = dynamic(() => import('@/components/UserActivities'), { ssr: false })
 
 interface DecodedTrack {
@@ -24,14 +20,8 @@ interface DecodedTrack {
 
 export default function Home() {
   const { data: session } = useSession()
-  const [photos, setPhotos] = useState<GeoPhoto[]>([])
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
   const [userTracks, setUserTracks] = useState<DecodedTrack[]>([])
-
-  const handlePhotosAdded = useCallback((newPhotos: GeoPhoto[]) => {
-    setPhotos(prev => [...prev, ...newPhotos])
-  }, [])
 
   const handleActivitySelect = useCallback((activity: StravaActivity) => {
     setSelectedActivity(activity)
@@ -53,23 +43,21 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-6 mb-8">
         <img
-          src="/matterhorn.jpg"
-          alt="Matterhorn from Domhütte"
+          src="/jungfrau.jpg"
+          alt="Jungfrau massif"
           className="w-24 h-24 flex-shrink-0 rounded-lg object-cover shadow-md"
         />
         <h1 className="text-4xl font-bold text-alpine-green">
-          Haute Route: Chamonix to Zermatt
+          Berner Oberland: Jungfrau Region
         </h1>
       </div>
 
       {/* Interactive Map */}
       <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Route Map</h2>
+        <h2 className="text-2xl font-semibold mb-4">Regional Map</h2>
         <div className="h-[500px] rounded-lg overflow-hidden">
-          <RouteMap
+          <BernerOberlandMap
             className="h-full w-full"
-            photos={photos}
-            trip={activeTrip}
             userTracks={userTracks}
           />
         </div>
@@ -78,19 +66,10 @@ export default function Home() {
       {/* Strava Activities */}
       <div className="mb-8">
         <UserActivities
-          region="haute-route"
+          region="berner-oberland"
           onActivitySelect={handleActivitySelect}
           onActivitiesLoaded={handleActivitiesLoaded}
           selectedActivityId={selectedActivity?.id}
-        />
-      </div>
-
-      {/* Trip Manager & Photos side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <TripManager region="haute-route" onTripLoaded={setActiveTrip} />
-        <PhotoUpload
-          uploaderName={typeof window !== 'undefined' ? localStorage.getItem('touring-user-name') || 'Anonymous' : 'Anonymous'}
-          onPhotosAdded={handlePhotosAdded}
         />
       </div>
     </div>

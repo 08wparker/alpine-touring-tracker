@@ -36,15 +36,24 @@ export default function UserActivities({
 
     try {
       const stravaAPI = new StravaAPI(session.accessToken)
-      
-      // Get recent activities (last 12 months)
-      let allActivities = await stravaAPI.getRecentActivities(12)
-      
+
+      // Check sessionStorage cache first to avoid rate limits
+      const cacheKey = 'strava-all-activities'
+      let allActivities: StravaActivity[]
+      const cached = sessionStorage.getItem(cacheKey)
+
+      if (cached) {
+        allActivities = JSON.parse(cached)
+      } else {
+        allActivities = await stravaAPI.getAllActivities()
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(allActivities)) } catch {}
+      }
+
       // Filter to ski touring activities
       const skiTourActivities = stravaAPI.filterSkiTouringActivities(allActivities)
-      
+
       // Filter by region if specified
-      const regionActivities = region 
+      const regionActivities = region
         ? stravaAPI.filterActivitiesByRegion(skiTourActivities, region)
         : skiTourActivities
 

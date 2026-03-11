@@ -29,13 +29,7 @@ export default function RootLayout({
               </div>
               <nav className="flex space-x-6">
                 <a href="/" className="px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors">
-                  Haute Route
-                </a>
-                <a href="/berner-oberland" className="px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors">
                   Berner Oberland
-                </a>
-                <a href="/ortler" className="px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors">
-                  Ortler Group
                 </a>
                 <a href="/silvretta" className="px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors">
                   Silvretta
