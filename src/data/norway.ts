@@ -6,7 +6,7 @@ export const norwayHuts: Hut[] = [
     id: 'andalsnes-dock',
     name: 'Åndalsnes',
     elevation: 0,
-    coordinates: [7.3167, 62.5675], // [lng, lat]
+    coordinates: [7.6871, 62.5675], // [lng, lat]
     capacity: 0,
     guardian: false,
     season: 'Year-round',
@@ -17,11 +17,11 @@ export const norwayHuts: Hut[] = [
     id: 'mandalen-dock',
     name: 'Måndalen',
     elevation: 0,
-    coordinates: [7.4500, 62.4833], // [lng, lat]
+    coordinates: [7.4451, 62.5331], // [lng, lat]
     capacity: 0,
     guardian: false,
     season: 'Year-round',
-    description: 'Boat dock at Måndalen on the south side of Romsdalsfjorden. Quick access to steep Romsdal couloirs and Trolltindene.'
+    description: 'Boat dock at Måndalen on Romsdalsfjorden. Access to western Romsdal peaks and Trolltindene.'
   }
 ];
 
@@ -31,7 +31,7 @@ export const norwaySummits: Summit[] = [
     id: 'store-vengetind',
     name: 'Store Vengetind',
     elevation: 1852,
-    coordinates: [7.2000, 62.4333], // [lng, lat]
+    coordinates: [7.8400, 62.5076], // [lng, lat]
     prominence: 820,
     difficulty: 'Very Difficult',
     description: 'Highest peak in the Romsdal Alps, dramatic NE face. Classic steep ski descent from summit ridge.',
@@ -42,7 +42,7 @@ export const norwaySummits: Summit[] = [
     id: 'romsdalshorn',
     name: 'Romsdalshorn',
     elevation: 1550,
-    coordinates: [7.1833, 62.4667], // [lng, lat]
+    coordinates: [7.7856, 62.4906], // [lng, lat] — 62°29'26"N 7°47'08"E
     prominence: 450,
     difficulty: 'Difficult',
     description: 'Iconic Romsdal peak with classic couloir skiing. The south couloir is a renowned ski mountaineering line.',
@@ -53,18 +53,18 @@ export const norwaySummits: Summit[] = [
     id: 'slogen',
     name: 'Slogen',
     elevation: 1564,
-    coordinates: [6.3500, 62.2333], // [lng, lat]
+    coordinates: [6.6728, 62.2081], // [lng, lat]
     prominence: 1554,
     difficulty: 'Difficult',
-    description: 'Sunnmøre icon rising directly from Norangsfjorden. Sea-to-summit ski descent of 1564m vertical.',
+    description: 'Sunnmøre icon rising directly from Hjørundfjorden. Sea-to-summit ski descent of 1564m vertical.',
     firstAscent: '1843',
-    routeAccess: ['Boat access from Norangsfjorden']
+    routeAccess: ['Boat access from Hjørundfjorden']
   },
   {
     id: 'kirketaket',
     name: 'Kirketaket',
     elevation: 1439,
-    coordinates: [7.0833, 62.5333], // [lng, lat]
+    coordinates: [7.9071, 62.6113], // [lng, lat]
     prominence: 640,
     difficulty: 'Moderate',
     description: 'Molde-area classic. Short approach from road, excellent powder skiing with fjord views.',
@@ -74,7 +74,7 @@ export const norwaySummits: Summit[] = [
     id: 'trollryggen',
     name: 'Trollryggen',
     elevation: 1740,
-    coordinates: [7.6500, 62.4500], // [lng, lat]
+    coordinates: [7.7392, 62.4820], // [lng, lat]
     prominence: 500,
     difficulty: 'Very Difficult',
     description: 'Part of the famous Troll Wall massif. Expert-only ski mountaineering terrain.',
@@ -85,7 +85,7 @@ export const norwaySummits: Summit[] = [
     id: 'bispen',
     name: 'Bispen',
     elevation: 1462,
-    coordinates: [7.5833, 62.4667], // [lng, lat]
+    coordinates: [7.6667, 62.4667], // [lng, lat]
     prominence: 350,
     difficulty: 'Moderate',
     description: 'Classic Romsdal ski peak near Trollstigen. Beautiful couloir descents with views of the Troll Wall.',
@@ -108,7 +108,7 @@ export const norwayTourRoute: RouteStage[] = [
     difficulty: 'Moderate',
     description: 'Warm-up day on the Molde-area classic. Fjord-to-summit skiing with panoramic views of 222 peaks.',
     waypoints: [
-      { name: 'Kirketaket Summit', coordinates: [7.0833, 62.5333], elevation: 1439, type: 'summit' }
+      { name: 'Kirketaket Summit', coordinates: [7.9071, 62.6113], elevation: 1439, type: 'summit' }
     ]
   },
   {
@@ -124,9 +124,8 @@ export const norwayTourRoute: RouteStage[] = [
     difficulty: 'Difficult',
     description: 'Drive from Åndalsnes to Vengedalen. Skin up and ski the classic south couloir of Romsdalshorn.',
     waypoints: [
-      { name: 'Vengedalen Trailhead', coordinates: [7.1500, 62.4600], elevation: 300, type: 'landmark' },
-      { name: 'Romsdalshorn South Couloir', coordinates: [7.1833, 62.4650], elevation: 1400, type: 'pass' },
-      { name: 'Romsdalshorn Summit', coordinates: [7.1833, 62.4667], elevation: 1550, type: 'summit' }
+      { name: 'Vengedalen Trailhead', coordinates: [7.7500, 62.5000], elevation: 300, type: 'landmark' },
+      { name: 'Romsdalshorn Summit', coordinates: [7.7856, 62.4906], elevation: 1550, type: 'summit' }
     ]
   },
   {
@@ -142,8 +141,8 @@ export const norwayTourRoute: RouteStage[] = [
     difficulty: 'Very Difficult',
     description: 'Big summit day on the highest peak in Romsdal. Long approach from Vengedalen, steep skiing on descent.',
     waypoints: [
-      { name: 'Vengedalen', coordinates: [7.1667, 62.4500], elevation: 400, type: 'landmark' },
-      { name: 'Store Vengetind Summit', coordinates: [7.2000, 62.4333], elevation: 1852, type: 'summit' }
+      { name: 'Vengedalen', coordinates: [7.7600, 62.5050], elevation: 400, type: 'landmark' },
+      { name: 'Store Vengetind Summit', coordinates: [7.8400, 62.5076], elevation: 1852, type: 'summit' }
     ]
   },
   {
@@ -159,8 +158,8 @@ export const norwayTourRoute: RouteStage[] = [
     difficulty: 'Moderate',
     description: 'Boat to Måndalen, drive to Trollstigen area. Ski Bispen with views of the Troll Wall.',
     waypoints: [
-      { name: 'Trollstigen Road', coordinates: [7.6700, 62.4567], elevation: 500, type: 'landmark' },
-      { name: 'Bispen Summit', coordinates: [7.5833, 62.4667], elevation: 1462, type: 'summit' }
+      { name: 'Trollstigen Road', coordinates: [7.6700, 62.4600], elevation: 500, type: 'landmark' },
+      { name: 'Bispen Summit', coordinates: [7.6667, 62.4667], elevation: 1462, type: 'summit' }
     ]
   },
   {
@@ -176,8 +175,8 @@ export const norwayTourRoute: RouteStage[] = [
     difficulty: 'Very Difficult',
     description: 'Expert terrain on the backside of the Troll Wall. The most serious objective of the trip.',
     waypoints: [
-      { name: 'Trollryggen Approach', coordinates: [7.6400, 62.4450], elevation: 800, type: 'landmark' },
-      { name: 'Trollryggen Summit', coordinates: [7.6500, 62.4500], elevation: 1740, type: 'summit' }
+      { name: 'Trollryggen Approach', coordinates: [7.7300, 62.4800], elevation: 800, type: 'landmark' },
+      { name: 'Trollryggen Summit', coordinates: [7.7392, 62.4820], elevation: 1740, type: 'summit' }
     ]
   }
 ];

@@ -49,15 +49,22 @@ const summitIcon = new L.DivIcon({
   popupAnchor: [0, -24]
 })
 
+interface DecodedTrack {
+  id: number
+  name: string
+  polyline: [number, number][]
+}
+
 interface NorwayMapProps {
   className?: string
   photos?: GeoPhoto[]
   trip?: Trip | null
+  userTracks?: DecodedTrack[]
 }
 
-export default function NorwayMap({ className = '', photos = [], trip }: NorwayMapProps) {
-  // Center on Romsdalsfjorden
-  const center: LatLngExpression = [62.45, 7.15]
+export default function NorwayMap({ className = '', photos = [], trip, userTracks = [] }: NorwayMapProps) {
+  // Center on Romsdalsfjorden area
+  const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
 
   // State for bulk activities
@@ -280,6 +287,24 @@ export default function NorwayMap({ className = '', photos = [], trip }: NorwayM
             </Popup>
           </Polyline>
         ))}
+        {/* User Strava tracks */}
+        {userTracks.map(track => (
+          <Polyline
+            key={`user-${track.id}`}
+            positions={track.polyline}
+            color="#f97316"
+            weight={4}
+            opacity={0.9}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold">{track.name}</h3>
+                <p className="text-sm text-gray-600">Strava GPS Track</p>
+              </div>
+            </Popup>
+          </Polyline>
+        ))}
+
         {/* Photo markers */}
         {photos.filter(p => p.coordinates).map(photo => (
           <PhotoMarker key={photo.id} photo={photo} />

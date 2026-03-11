@@ -14,7 +14,26 @@ const authOptions: NextAuthOptions = {
           approval_prompt: 'auto',
         },
       },
-      token: 'https://www.strava.com/oauth/token',
+      token: {
+        url: 'https://www.strava.com/oauth/token',
+        async request({ params, provider }) {
+          const response = await fetch('https://www.strava.com/oauth/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: process.env.STRAVA_CLIENT_ID!,
+              client_secret: process.env.STRAVA_CLIENT_SECRET!,
+              code: params.code as string,
+              grant_type: 'authorization_code',
+            }),
+          })
+          const tokens = await response.json()
+          if (!response.ok) {
+            throw new Error(`Strava token error: ${JSON.stringify(tokens)}`)
+          }
+          return { tokens }
+        },
+      },
       userinfo: 'https://www.strava.com/api/v3/athlete',
       clientId: process.env.STRAVA_CLIENT_ID,
       clientSecret: process.env.STRAVA_CLIENT_SECRET,

@@ -112,18 +112,22 @@ export class StravaAPI {
   // Filter activities by ski touring types
   filterSkiTouringActivities(activities: StravaActivity[]): StravaActivity[] {
     const skiTourTypes = [
+      'BackcountrySki',
       'Backcountry Ski',
+      'NordicSki',
       'Nordic Ski',
+      'AlpineSki',
       'Alpine Ski',
       'Ski',
       'Snowshoe'
     ]
-    
-    return activities.filter(activity => 
+
+    return activities.filter(activity =>
       skiTourTypes.includes(activity.sport_type) ||
       skiTourTypes.includes(activity.type) ||
       activity.name.toLowerCase().includes('ski tour') ||
       activity.name.toLowerCase().includes('backcountry') ||
+      activity.name.toLowerCase().includes('ski') ||
       activity.name.toLowerCase().includes('mountaineering')
     )
   }
@@ -190,12 +194,24 @@ export class StravaAPI {
     })
   }
 
-  // Get activities from the last N months
-  getRecentActivities(months = 12): Promise<StravaActivity[]> {
+  // Get activities from the last N months (paginated to get all)
+  async getRecentActivities(months = 12): Promise<StravaActivity[]> {
     const now = new Date()
     const monthsAgo = new Date(now.getFullYear(), now.getMonth() - months, now.getDate())
     const after = Math.floor(monthsAgo.getTime() / 1000)
-    
-    return this.getActivities(1, 200, after)
+
+    const allActivities: StravaActivity[] = []
+    let page = 1
+    const perPage = 200
+
+    while (true) {
+      const batch = await this.getActivities(page, perPage, after)
+      allActivities.push(...batch)
+      if (batch.length < perPage) break
+      page++
+      if (page > 10) break // safety limit
+    }
+
+    return allActivities
   }
 }
