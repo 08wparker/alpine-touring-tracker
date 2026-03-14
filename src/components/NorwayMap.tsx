@@ -67,9 +67,11 @@ interface NorwayMapProps {
   trip?: Trip | null
   userTracks?: DecodedTrack[]
   allUserTracks?: UserTrackGroup[]
+  hiddenUserIds?: Set<string>
+  onToggleUser?: (userId: string) => void
 }
 
-export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [] }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
@@ -89,15 +91,23 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
   return (
     <div className={`${className} relative`}>
       {/* Route Legend */}
-      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
+      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm max-w-[200px]">
         <h4 className="font-bold mb-2">Map Features</h4>
         <div className="space-y-1">
           {allUserTracks.length > 0 ? (
             allUserTracks.map(ug => (
-              <div key={ug.userId} className="flex items-center gap-2">
-                <div className="w-4 h-0.5" style={{ backgroundColor: ug.color }}></div>
-                <span>{ug.userName}</span>
-              </div>
+              <button
+                key={ug.userId}
+                onClick={() => onToggleUser?.(ug.userId)}
+                className={`flex items-center gap-2 w-full text-left rounded px-1 hover:bg-gray-100 transition-colors ${
+                  hiddenUserIds.has(ug.userId) ? 'opacity-40' : ''
+                }`}
+                title={hiddenUserIds.has(ug.userId) ? `Show ${ug.userName}'s tracks` : `Hide ${ug.userName}'s tracks`}
+              >
+                <div className="w-4 h-0.5 flex-shrink-0" style={{ backgroundColor: ug.color }}></div>
+                <span className="truncate">{ug.userName}</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">{ug.tracks.length}</span>
+              </button>
             ))
           ) : (
             <div className="flex items-center gap-2">
@@ -198,7 +208,7 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
         </Polyline>
 
         {/* Multi-user Strava tracks */}
-        {allUserTracks.map(userGroup =>
+        {allUserTracks.filter(ug => !hiddenUserIds.has(ug.userId)).map(userGroup =>
           userGroup.tracks.map(track => (
             <Polyline
               key={`${userGroup.userId}-${track.id}`}

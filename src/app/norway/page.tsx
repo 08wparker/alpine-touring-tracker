@@ -44,6 +44,7 @@ export default function Norway() {
   const [userTracks, setUserTracks] = useState<DecodedTrack[]>([])
   const [allUserTracks, setAllUserTracks] = useState<UserTrackGroup[]>([])
   const [currentUserActivities, setCurrentUserActivities] = useState<ActivityForPhoto[]>([])
+  const [hiddenUserIds, setHiddenUserIds] = useState<Set<string>>(new Set())
 
   // Load all users' tracks from Firestore on mount
   useEffect(() => {
@@ -96,7 +97,6 @@ export default function Norway() {
 
   const handlePhotosAdded = useCallback((newPhotos: GeoPhoto[]) => {
     setPhotos(prev => {
-      // Deduplicate by id (Firestore-loaded photos might already exist)
       const existingIds = new Set(prev.map(p => p.id))
       const unique = newPhotos.filter(p => !existingIds.has(p.id))
       return [...prev, ...unique]
@@ -107,7 +107,6 @@ export default function Norway() {
     setSelectedActivity(activity)
   }, [])
 
-  // Auto-load logged-in user's tracks when activities are fetched from Strava
   const handleActivitiesLoaded = useCallback((activities: StravaActivity[]) => {
     const api = new StravaAPI('')
     const tracks: DecodedTrack[] = activities
@@ -119,7 +118,6 @@ export default function Norway() {
       }))
     setUserTracks(tracks)
 
-    // Also set activities for photo interpolation
     setCurrentUserActivities(
       activities
         .filter(a => a.map?.summary_polyline)
@@ -133,34 +131,48 @@ export default function Norway() {
     )
   }, [])
 
+  const handleToggleUser = useCallback((userId: string) => {
+    setHiddenUserIds(prev => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }, [])
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center gap-6 mb-8">
-        <h1 className="text-4xl font-bold text-alpine-green">
+    <div className="container mx-auto px-4 py-6 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-alpine-green mb-2">
           Romsdalsfjorden: Norway
         </h1>
+        <p className="text-mountain-gray max-w-3xl text-sm md:text-base">
+          Boat-based ski touring in the Romsdal and Sunnmore Alps — steep couloirs, sea-to-summit descents,
+          and dramatic fjord landscapes.
+        </p>
       </div>
-      <p className="text-mountain-gray mb-8 max-w-3xl">
-        Boat-based ski touring in the Romsdal and Sunnmore Alps — steep couloirs, sea-to-summit descents,
-        and dramatic fjord landscapes. Docking at Åndalsnes and Måndalen for day trips to iconic peaks.
-      </p>
 
       {/* Interactive Map */}
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Regional Map</h2>
-        <div className="h-[500px] rounded-lg overflow-hidden">
+      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+        <h2 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">Regional Map</h2>
+        <div className="h-[350px] md:h-[500px] rounded-lg overflow-hidden">
           <NorwayMap
             className="h-full w-full"
             photos={photos}
             trip={activeTrip}
             userTracks={userTracks}
             allUserTracks={allUserTracks}
+            hiddenUserIds={hiddenUserIds}
+            onToggleUser={handleToggleUser}
           />
         </div>
       </div>
 
       {/* Strava Activities */}
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <UserActivities
           region="norway"
           onActivitySelect={handleActivitySelect}
@@ -170,8 +182,13 @@ export default function Norway() {
       </div>
 
       {/* Trip Manager & Photos side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <TripManager region="norway" onTripLoaded={setActiveTrip} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
+        <TripManager
+          region="norway"
+          onTripLoaded={setActiveTrip}
+          allUserTracks={allUserTracks}
+          photoCount={photos.length}
+        />
         <PhotoUpload
           uploaderName={session?.user?.name || 'Anonymous'}
           onPhotosAdded={handlePhotosAdded}

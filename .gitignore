@@ -8,6 +8,7 @@ out/
 # Environment
 .env.local
 .env*.local
+import.env
 
 # Strava bulk export data (497MB+)
 bulk_export_stava_example/
