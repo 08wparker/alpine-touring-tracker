@@ -55,16 +55,13 @@ export default function PhotoUpload({
         photo.userId = userId
         photo.region = region
 
-        // Upload to Firebase Storage if we have a userId
-        if (userId) {
-          try {
-            const { storageUrl, thumbnailUrl } = await uploadPhoto(file, userId, photo.id)
-            photo.storageUrl = storageUrl
-            photo.thumbnailUrl = thumbnailUrl
-          } catch (err) {
-            console.error('Error uploading to Storage:', err)
-            // Continue with blob URL only
-          }
+        // Upload to Firebase Storage (use 'anonymous' folder if no userId)
+        try {
+          const { storageUrl, thumbnailUrl } = await uploadPhoto(file, userId || 'anonymous', photo.id)
+          photo.storageUrl = storageUrl
+          photo.thumbnailUrl = thumbnailUrl
+        } catch (err) {
+          console.error('Error uploading to Storage:', err)
         }
 
         // Save metadata to Firestore
