@@ -1,13 +1,13 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
 import { getAllUsersActivities, UserWithActivities } from '@/lib/firestoreCache'
-import { UserTrackGroup } from '@/components/NorwayMap'
+import { UserTrackGroup, DayTrackGroup } from '@/components/NorwayMap'
 
 const NorwayMap = dynamic(() => import('@/components/NorwayMap'), {
   ssr: false,
@@ -21,6 +21,7 @@ const UserActivities = dynamic(() => import('@/components/UserActivities'), { ss
 interface DecodedTrack {
   id: number
   name: string
+  date?: string
   polyline: [number, number][]
 }
 
@@ -33,8 +34,27 @@ function isInNorway(activity: StravaActivity): boolean {
          lng >= NORWAY_BOUNDS.minLng && lng <= NORWAY_BOUNDS.maxLng
 }
 
-// Assign distinct colors to users
-const USER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b']
+// Distinct colors for each day
+const DAY_COLORS = [
+  '#f97316', // orange
+  '#3b82f6', // blue
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#14b8a6', // teal
+  '#f59e0b', // amber
+  '#6366f1', // indigo
+  '#84cc16', // lime
+  '#06b6d4', // cyan
+  '#d946ef', // fuchsia
+]
+
+// Format date string to readable label
+function formatDayLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 export default function Norway() {
   const { data: session } = useSession()
@@ -43,8 +63,9 @@ export default function Norway() {
   const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
   const [userTracks, setUserTracks] = useState<DecodedTrack[]>([])
   const [allUserTracks, setAllUserTracks] = useState<UserTrackGroup[]>([])
+  const [allDecodedTracks, setAllDecodedTracks] = useState<DecodedTrack[]>([])
   const [currentUserActivities, setCurrentUserActivities] = useState<ActivityForPhoto[]>([])
-  const [hiddenUserIds, setHiddenUserIds] = useState<Set<string>>(new Set())
+  const [hiddenDays, setHiddenDays] = useState<Set<string>>(new Set())
 
   // Load all users' tracks from Firestore on mount
   useEffect(() => {
@@ -52,6 +73,8 @@ export default function Norway() {
       if (allUsers.length === 0) return
 
       const api = new StravaAPI('')
+      const allTracks: DecodedTrack[] = []
+
       const trackGroups: UserTrackGroup[] = allUsers.map((user: UserWithActivities, idx: number) => {
         const norwayActivities = user.activities.filter(isInNorway)
         const tracks: DecodedTrack[] = norwayActivities
@@ -59,18 +82,22 @@ export default function Norway() {
           .map(a => ({
             id: a.id,
             name: a.name,
+            date: a.start_date_local?.split('T')[0] || a.start_date?.split('T')[0],
             polyline: api.decodePolyline(a.map.summary_polyline)
           }))
+
+        allTracks.push(...tracks)
 
         return {
           userId: user.userId,
           userName: user.name,
-          color: USER_COLORS[idx % USER_COLORS.length],
+          color: DAY_COLORS[idx % DAY_COLORS.length],
           tracks,
         }
       }).filter(g => g.tracks.length > 0)
 
       setAllUserTracks(trackGroups)
+      setAllDecodedTracks(allTracks)
 
       // Set current user's activities for photo interpolation
       if (session?.user?.id) {
@@ -95,6 +122,29 @@ export default function Norway() {
     })
   }, [session?.user?.id])
 
+  // Build day-grouped tracks
+  const dayTracks = useMemo((): DayTrackGroup[] => {
+    const byDay = new Map<string, DecodedTrack[]>()
+
+    for (const track of allDecodedTracks) {
+      const day = track.date || 'unknown'
+      if (!byDay.has(day)) byDay.set(day, [])
+      byDay.get(day)!.push(track)
+    }
+
+    // Sort by date (newest first)
+    const sortedDays = Array.from(byDay.entries())
+      .filter(([day]) => day !== 'unknown')
+      .sort(([a], [b]) => b.localeCompare(a))
+
+    return sortedDays.map(([date, tracks], idx) => ({
+      date,
+      label: formatDayLabel(date),
+      color: DAY_COLORS[idx % DAY_COLORS.length],
+      tracks,
+    }))
+  }, [allDecodedTracks])
+
   const handlePhotosAdded = useCallback((newPhotos: GeoPhoto[]) => {
     setPhotos(prev => {
       const existingIds = new Set(prev.map(p => p.id))
@@ -114,6 +164,7 @@ export default function Norway() {
       .map(a => ({
         id: a.id,
         name: a.name,
+        date: a.start_date_local?.split('T')[0] || a.start_date?.split('T')[0],
         polyline: api.decodePolyline(a.map.summary_polyline)
       }))
     setUserTracks(tracks)
@@ -131,13 +182,13 @@ export default function Norway() {
     )
   }, [])
 
-  const handleToggleUser = useCallback((userId: string) => {
-    setHiddenUserIds(prev => {
+  const handleToggleDay = useCallback((date: string) => {
+    setHiddenDays(prev => {
       const next = new Set(prev)
-      if (next.has(userId)) {
-        next.delete(userId)
+      if (next.has(date)) {
+        next.delete(date)
       } else {
-        next.add(userId)
+        next.add(date)
       }
       return next
     })
@@ -165,10 +216,32 @@ export default function Norway() {
             trip={activeTrip}
             userTracks={userTracks}
             allUserTracks={allUserTracks}
-            hiddenUserIds={hiddenUserIds}
-            onToggleUser={handleToggleUser}
+            dayTracks={dayTracks}
+            hiddenDays={hiddenDays}
+            onToggleDay={handleToggleDay}
           />
         </div>
+
+        {/* Day legend below map */}
+        {dayTracks.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {dayTracks.map(dg => (
+              <button
+                key={dg.date}
+                onClick={() => handleToggleDay(dg.date)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  hiddenDays.has(dg.date)
+                    ? 'opacity-40 border-gray-200 bg-gray-50'
+                    : 'border-gray-300 bg-white hover:bg-gray-50'
+                }`}
+              >
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
+                <span>{dg.label}</span>
+                <span className="text-xs text-gray-400">{dg.tracks.length}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Strava Activities */}

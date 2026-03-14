@@ -51,7 +51,15 @@ const summitIcon = new L.DivIcon({
 interface DecodedTrack {
   id: number
   name: string
+  date?: string  // ISO date string for day grouping
   polyline: [number, number][]
+}
+
+export interface DayTrackGroup {
+  date: string       // e.g. "2026-03-14"
+  label: string      // e.g. "Mar 14"
+  color: string
+  tracks: DecodedTrack[]
 }
 
 export interface UserTrackGroup {
@@ -67,11 +75,14 @@ interface NorwayMapProps {
   trip?: Trip | null
   userTracks?: DecodedTrack[]
   allUserTracks?: UserTrackGroup[]
+  dayTracks?: DayTrackGroup[]
+  hiddenDays?: Set<string>
+  onToggleDay?: (date: string) => void
   hiddenUserIds?: Set<string>
   onToggleUser?: (userId: string) => void
 }
 
-export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
@@ -90,56 +101,6 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
 
   return (
     <div className={`${className} relative`}>
-      {/* Route Legend */}
-      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm max-w-[200px]">
-        <h4 className="font-bold mb-2">Map Features</h4>
-        <div className="space-y-1">
-          {allUserTracks.length > 0 ? (
-            allUserTracks.map(ug => (
-              <button
-                key={ug.userId}
-                onClick={() => onToggleUser?.(ug.userId)}
-                className={`flex items-center gap-2 w-full text-left rounded px-1 hover:bg-gray-100 transition-colors ${
-                  hiddenUserIds.has(ug.userId) ? 'opacity-40' : ''
-                }`}
-                title={hiddenUserIds.has(ug.userId) ? `Show ${ug.userName}'s tracks` : `Hide ${ug.userName}'s tracks`}
-              >
-                <div className="w-4 h-0.5 flex-shrink-0" style={{ backgroundColor: ug.color }}></div>
-                <span className="truncate">{ug.userName}</span>
-                <span className="text-xs text-gray-400 flex-shrink-0">{ug.tracks.length}</span>
-              </button>
-            ))
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-orange-500"></div>
-              <span>Real GPS Tracks</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-blue-400" style={{backgroundImage: 'repeating-linear-gradient(to right, #60a5fa 0px, #60a5fa 3px, transparent 3px, transparent 6px)'}}></div>
-            <span>Fjord Coastline</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L22 20H2L12 2Z" fill="#dc2626" stroke="#ffffff" strokeWidth="2"/>
-                <circle cx="12" cy="12" r="2" fill="white"/>
-              </svg>
-            </div>
-            <span>Major Summits</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="5" r="3" fill="#0369a1" stroke="#ffffff" strokeWidth="2"/>
-                <path d="M6 18C8 16 10 16 12 18C14 16 16 16 18 18" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" fill="none"/>
-              </svg>
-            </div>
-            <span>Boat Docks</span>
-          </div>
-        </div>
-      </div>
-
       <MapContainer
         center={center}
         zoom={zoom}
@@ -207,8 +168,28 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
           </Popup>
         </Polyline>
 
-        {/* Multi-user Strava tracks */}
-        {allUserTracks.filter(ug => !hiddenUserIds.has(ug.userId)).map(userGroup =>
+        {/* Day-colored Strava tracks */}
+        {dayTracks.filter(dg => !hiddenDays.has(dg.date)).map(dayGroup =>
+          dayGroup.tracks.map(track => (
+            <Polyline
+              key={`day-${track.id}`}
+              positions={track.polyline}
+              color={dayGroup.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: dayGroup.color }}>{dayGroup.label}</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
+
+        {/* Fallback: user-colored tracks (when no day data) */}
+        {dayTracks.length === 0 && allUserTracks.filter(ug => !hiddenUserIds.has(ug.userId)).map(userGroup =>
           userGroup.tracks.map(track => (
             <Polyline
               key={`${userGroup.userId}-${track.id}`}
