@@ -26,7 +26,8 @@ export default function UserActivities({
   const [dataSource, setDataSource] = useState<string>('')
 
   useEffect(() => {
-    if (session?.accessToken && session?.user?.id) {
+    // Only fetch from Strava if logged in via Strava (not Google)
+    if (session?.accessToken && session?.user?.id && session?.provider === 'strava') {
       fetchActivities()
     }
   }, [session, region])
@@ -197,6 +198,19 @@ export default function UserActivities({
         <h2 className="text-2xl font-semibold mb-4">Your Ski Tours</h2>
         <p className="text-mountain-gray">
           Connect your Strava account to see your ski touring activities overlaid on the maps.
+        </p>
+      </div>
+    )
+  }
+
+  // Google auth users can see all tracks but don't have Strava data
+  if (session.provider === 'google') {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-semibold mb-4">Your Ski Tours</h2>
+        <p className="text-mountain-gray">
+          Signed in with Google — you can view all tracks on the map and upload photos.
+          To see your own activities, sign in with Strava instead.
         </p>
       </div>
     )
