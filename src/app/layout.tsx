@@ -25,7 +25,7 @@ export default function RootLayout({
             <div className="container mx-auto px-4 py-3 md:py-4">
               <div className="flex justify-between items-center mb-3 md:mb-4">
                 <div className="flex items-center gap-3">
-                  <img src="/ppi-logo.png" alt="Parker Plastics Inc." className="h-8 md:h-10 brightness-0 invert" />
+                  <img src="/ppi-logo.png" alt="Parker Plastics Inc." className="h-8 md:h-10" />
                   <h1 className="text-lg md:text-2xl font-bold">Alpine Touring Tracker</h1>
                 </div>
                 <StravaAuth />
