@@ -10,9 +10,9 @@ const config: Config = {
     extend: {
       colors: {
         'alpine-blue': '#1e40af',
-        'alpine-green': '#15803d',
-        'alpine-green-light': '#16a34a',
-        'alpine-green-dark': '#14532d',
+        'alpine-green': '#1e3a5f',
+        'alpine-green-light': '#2a4a72',
+        'alpine-green-dark': '#0f1f3a',
         'mountain-gray': '#6b7280',
         'snow-white': '#f8fafc',
       },

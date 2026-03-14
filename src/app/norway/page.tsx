@@ -16,6 +16,7 @@ const NorwayMap = dynamic(() => import('@/components/NorwayMap'), {
 const PhotoUpload = dynamic(() => import('@/components/PhotoUpload'), { ssr: false })
 const UserActivities = dynamic(() => import('@/components/UserActivities'), { ssr: false })
 const FullscreenPhoto = dynamic(() => import('@/components/FullscreenPhoto'), { ssr: false })
+const PhotoCarousel = dynamic(() => import('@/components/PhotoCarousel'), { ssr: false })
 
 interface DecodedTrack {
   id: number
@@ -311,6 +312,18 @@ export default function Norway() {
           </div>
         )}
       </div>
+
+      {/* Photo Carousel */}
+      {photos.length > 0 && (
+        <div className="mb-6 md:mb-8">
+          <PhotoCarousel
+            photos={photos}
+            dayOptions={dayTracks.map(dg => ({ date: dg.date, label: dg.label, color: dg.color }))}
+            tourNames={tourNames}
+            onFullscreen={setFullscreenPhoto}
+          />
+        </div>
+      )}
 
       {/* Strava Activities */}
       <div className="mb-6 md:mb-8">

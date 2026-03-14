@@ -24,7 +24,10 @@ export default function RootLayout({
           <header className="bg-alpine-green text-white">
             <div className="container mx-auto px-4 py-3 md:py-4">
               <div className="flex justify-between items-center mb-3 md:mb-4">
-                <h1 className="text-lg md:text-2xl font-bold">Alpine Touring Tracker</h1>
+                <div className="flex items-center gap-3">
+                  <img src="/ppi-logo.png" alt="Parker Plastics Inc." className="h-8 md:h-10 brightness-0 invert" />
+                  <h1 className="text-lg md:text-2xl font-bold">Alpine Touring Tracker</h1>
+                </div>
                 <StravaAuth />
               </div>
               <nav className="flex space-x-2 md:space-x-6 overflow-x-auto">
