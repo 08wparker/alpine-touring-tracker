@@ -252,6 +252,7 @@ export default function NorwayMap({ className = '', photos = [], userTracks = []
               key={photo.id}
               photo={photo}
               tourName={tourName}
+              color={dayGroup?.color}
               onFullscreen={onFullscreenPhoto}
             />
           )

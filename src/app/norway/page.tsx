@@ -291,22 +291,31 @@ export default function Norway() {
               }
 
               return (
-                <button
-                  key={dg.date}
-                  onClick={() => handleToggleDay(dg.date)}
-                  onDoubleClick={() => isAdmin && startRenamingDay(dg.date)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                    hiddenDays.has(dg.date)
-                      ? 'opacity-40 border-gray-200 bg-gray-50'
-                      : 'border-gray-300 bg-white hover:bg-gray-50'
-                  }`}
-                  title={isAdmin ? 'Click to toggle, double-click to rename' : 'Click to toggle'}
-                >
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
-                  <span>{customName ? `${customName}` : dg.label}</span>
-                  {customName && <span className="text-xs text-gray-400">{dg.label}</span>}
-                  <span className="text-xs text-gray-400">{dg.tracks.length}</span>
-                </button>
+                <div key={dg.date} className="flex items-center gap-0.5">
+                  <button
+                    onClick={() => handleToggleDay(dg.date)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                      hiddenDays.has(dg.date)
+                        ? 'opacity-40 border-gray-200 bg-gray-50'
+                        : 'border-gray-300 bg-white hover:bg-gray-50'
+                    }`}
+                    title="Click to toggle visibility"
+                  >
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
+                    <span>{customName ? `${customName}` : dg.label}</span>
+                    {customName && <span className="text-xs text-gray-400">{dg.label}</span>}
+                    <span className="text-xs text-gray-400">{dg.tracks.length}</span>
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => startRenamingDay(dg.date)}
+                      className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Rename tour day"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    </button>
+                  )}
+                </div>
               )
             })}
           </div>
