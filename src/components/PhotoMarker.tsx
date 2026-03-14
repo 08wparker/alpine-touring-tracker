@@ -22,33 +22,48 @@ const photoIcon = new L.DivIcon({
 
 interface PhotoMarkerProps {
   photo: GeoPhoto
+  tourName?: string
+  onFullscreen?: (photo: GeoPhoto) => void
 }
 
-export default function PhotoMarker({ photo }: PhotoMarkerProps) {
+export default function PhotoMarker({ photo, tourName, onFullscreen }: PhotoMarkerProps) {
   if (!photo.coordinates) return null
+
+  const imgSrc = photo.storageUrl || photo.thumbnailUrl || photo.previewUrl
 
   return (
     <Marker
       position={[photo.coordinates[0], photo.coordinates[1]]}
       icon={photoIcon}
     >
-      <Popup>
-        <div className="p-1 max-w-[200px]">
+      <Popup maxWidth={280} minWidth={200}>
+        <div className="p-0">
           <img
-            src={photo.thumbnailUrl || photo.storageUrl || photo.previewUrl}
+            src={imgSrc}
             alt={photo.caption}
-            className="w-full h-auto rounded mb-2"
+            className="w-full h-auto rounded-t cursor-pointer"
+            style={{ maxHeight: 200, objectFit: 'cover' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onFullscreen?.(photo)
+            }}
           />
-          <p className="text-sm font-semibold">{photo.caption}</p>
-          <p className="text-xs text-gray-500">by {photo.uploaderName}</p>
-          {photo.timestamp && (
-            <p className="text-xs text-gray-400">
-              {photo.timestamp.toLocaleString()}
+          <div className="px-2 py-1.5">
+            <p className="text-sm font-semibold leading-tight">{photo.caption}</p>
+            {tourName && (
+              <p className="text-xs text-purple-600 font-medium mt-0.5">{tourName}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-0.5">
+              {photo.uploaderName}
+              {photo.timestamp && (
+                <span className="ml-1 text-gray-400">
+                  {photo.timestamp.toLocaleString(undefined, {
+                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+                  })}
+                </span>
+              )}
             </p>
-          )}
-          <p className="text-xs text-gray-400 mt-1">
-            Location: {photo.source === 'exif' ? 'Photo GPS' : photo.source === 'interpolated' ? 'Track interpolated' : photo.source === 'gps-match' ? 'Track match' : 'Manual'}
-          </p>
+          </div>
         </div>
       </Popup>
     </Marker>

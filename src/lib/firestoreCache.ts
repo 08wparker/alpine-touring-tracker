@@ -224,6 +224,26 @@ export async function updatePhotoCaption(photoId: string, caption: string): Prom
   await updateDoc(photoRef, { caption })
 }
 
+// --- Tour name management ---
+
+export async function saveTourName(region: string, date: string, name: string): Promise<void> {
+  const tourDoc = doc(db, 'tourNames', `${region}_${date}`)
+  await setDoc(tourDoc, { region, date, name })
+}
+
+export async function getTourNames(region: string): Promise<Map<string, string>> {
+  const toursRef = collection(db, 'tourNames')
+  const q = query(toursRef, where('region', '==', region))
+  const snapshot = await getDocs(q)
+
+  const names = new Map<string, string>()
+  snapshot.docs.forEach(d => {
+    const data = d.data()
+    if (data.name) names.set(data.date, data.name)
+  })
+  return names
+}
+
 // --- Multi-user loading ---
 
 export interface UserWithActivities {

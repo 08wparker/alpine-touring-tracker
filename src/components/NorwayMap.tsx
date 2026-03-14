@@ -78,9 +78,11 @@ interface NorwayMapProps {
   onToggleDay?: (date: string) => void
   hiddenUserIds?: Set<string>
   onToggleUser?: (userId: string) => void
+  tourNames?: Map<string, string>  // date -> custom tour name
+  onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function NorwayMap({ className = '', photos = [], userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), onFullscreenPhoto }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
@@ -225,9 +227,25 @@ export default function NorwayMap({ className = '', photos = [], userTracks = []
         ))}
 
         {/* Photo markers */}
-        {photos.filter(p => p.coordinates).map(photo => (
-          <PhotoMarker key={photo.id} photo={photo} />
-        ))}
+        {photos.filter(p => p.coordinates).map(photo => {
+          // Find the tour name for this photo's date
+          const photoDate = photo.timestamp
+            ? new Date(photo.timestamp).toISOString().split('T')[0]
+            : undefined
+          const dayGroup = photoDate ? dayTracks.find(dg => dg.date === photoDate) : undefined
+          const tourName = photoDate && tourNames.get(photoDate)
+            ? `${tourNames.get(photoDate)} — ${dayGroup?.label || photoDate}`
+            : dayGroup?.label
+
+          return (
+            <PhotoMarker
+              key={photo.id}
+              photo={photo}
+              tourName={tourName}
+              onFullscreen={onFullscreenPhoto}
+            />
+          )
+        })}
 
       </MapContainer>
     </div>

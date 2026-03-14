@@ -28,14 +28,14 @@ export default function RootLayout({
                 <StravaAuth />
               </div>
               <nav className="flex space-x-2 md:space-x-6 overflow-x-auto">
-                <a href="/" className="px-3 md:px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors text-sm md:text-base whitespace-nowrap">
+                <a href="/norway" className="px-3 md:px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors text-sm md:text-base whitespace-nowrap">
+                  Norway
+                </a>
+                <a href="/berner-oberland" className="px-3 md:px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors text-sm md:text-base whitespace-nowrap">
                   Berner Oberland
                 </a>
                 <a href="/silvretta" className="px-3 md:px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors text-sm md:text-base whitespace-nowrap">
                   Silvretta
-                </a>
-                <a href="/norway" className="px-3 md:px-4 py-2 rounded-lg bg-alpine-green-light hover:bg-alpine-green-dark transition-colors text-sm md:text-base whitespace-nowrap">
-                  Norway
                 </a>
               </nav>
             </div>

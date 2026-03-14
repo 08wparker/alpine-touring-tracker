@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
-import { getAllUsersActivities, UserWithActivities } from '@/lib/firestoreCache'
+import { getAllUsersActivities, UserWithActivities, getTourNames, saveTourName } from '@/lib/firestoreCache'
 import { UserTrackGroup, DayTrackGroup } from '@/components/NorwayMap'
 
 const NorwayMap = dynamic(() => import('@/components/NorwayMap'), {
@@ -15,6 +15,7 @@ const NorwayMap = dynamic(() => import('@/components/NorwayMap'), {
 
 const PhotoUpload = dynamic(() => import('@/components/PhotoUpload'), { ssr: false })
 const UserActivities = dynamic(() => import('@/components/UserActivities'), { ssr: false })
+const FullscreenPhoto = dynamic(() => import('@/components/FullscreenPhoto'), { ssr: false })
 
 interface DecodedTrack {
   id: number
@@ -23,7 +24,6 @@ interface DecodedTrack {
   polyline: [number, number][]
 }
 
-// Norway region bounds
 const NORWAY_BOUNDS = { minLat: 62.0, maxLat: 62.8, minLng: 5.5, maxLng: 8.0 }
 
 function isInNorway(activity: StravaActivity): boolean {
@@ -32,7 +32,6 @@ function isInNorway(activity: StravaActivity): boolean {
          lng >= NORWAY_BOUNDS.minLng && lng <= NORWAY_BOUNDS.maxLng
 }
 
-// Distinct colors for each day
 const DAY_COLORS = [
   '#f97316', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899',
   '#14b8a6', '#f59e0b', '#6366f1', '#84cc16', '#06b6d4', '#d946ef',
@@ -43,7 +42,6 @@ function formatDayLabel(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// Admin user IDs (Strava athlete IDs, comma-separated)
 const ADMIN_USER_IDS = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS || '').split(',').filter(Boolean)
 
 export default function Norway() {
@@ -55,13 +53,21 @@ export default function Norway() {
   const [allDecodedTracks, setAllDecodedTracks] = useState<DecodedTrack[]>([])
   const [currentUserActivities, setCurrentUserActivities] = useState<ActivityForPhoto[]>([])
   const [hiddenDays, setHiddenDays] = useState<Set<string>>(new Set())
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<GeoPhoto | null>(null)
+  const [tourNames, setTourNames] = useState<Map<string, string>>(new Map())
+  const [editingDay, setEditingDay] = useState<string | null>(null)
+  const [editDayName, setEditDayName] = useState('')
 
   const currentUserId = session?.user?.id || ''
-  // Admin if in the admin list, OR if logged in via Strava (app owner — Strava limits to 1 athlete)
   const isAdmin = !!(currentUserId && (
     ADMIN_USER_IDS.includes(currentUserId) ||
     session?.provider === 'strava'
   ))
+
+  // Load tour names from Firestore
+  useEffect(() => {
+    getTourNames('norway').then(setTourNames).catch(console.error)
+  }, [])
 
   // Load all users' tracks from Firestore on mount
   useEffect(() => {
@@ -192,6 +198,41 @@ export default function Norway() {
     })
   }, [])
 
+  const startRenamingDay = (date: string) => {
+    setEditingDay(date)
+    setEditDayName(tourNames.get(date) || '')
+  }
+
+  const saveDayName = async (date: string) => {
+    const name = editDayName.trim()
+    try {
+      await saveTourName('norway', date, name)
+      setTourNames(prev => {
+        const next = new Map(prev)
+        if (name) {
+          next.set(date, name)
+        } else {
+          next.delete(date)
+        }
+        return next
+      })
+    } catch (err) {
+      console.error('Error saving tour name:', err)
+    }
+    setEditingDay(null)
+  }
+
+  // Find tour name for a photo by its date
+  const getTourNameForPhoto = useCallback((photo: GeoPhoto): string | undefined => {
+    if (!photo.timestamp) return undefined
+    const photoDate = new Date(photo.timestamp).toISOString().split('T')[0]
+    const customName = tourNames.get(photoDate)
+    const dayGroup = dayTracks.find(dg => dg.date === photoDate)
+    if (customName && dayGroup) return `${customName} — ${dayGroup.label}`
+    if (customName) return customName
+    return dayGroup?.label
+  }, [tourNames, dayTracks])
+
   return (
     <div className="container mx-auto px-4 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
@@ -216,27 +257,57 @@ export default function Norway() {
             dayTracks={dayTracks}
             hiddenDays={hiddenDays}
             onToggleDay={handleToggleDay}
+            tourNames={tourNames}
+            onFullscreenPhoto={setFullscreenPhoto}
           />
         </div>
 
         {/* Day legend below map */}
         {dayTracks.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {dayTracks.map(dg => (
-              <button
-                key={dg.date}
-                onClick={() => handleToggleDay(dg.date)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  hiddenDays.has(dg.date)
-                    ? 'opacity-40 border-gray-200 bg-gray-50'
-                    : 'border-gray-300 bg-white hover:bg-gray-50'
-                }`}
-              >
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
-                <span>{dg.label}</span>
-                <span className="text-xs text-gray-400">{dg.tracks.length}</span>
-              </button>
-            ))}
+            {dayTracks.map(dg => {
+              const customName = tourNames.get(dg.date)
+
+              if (editingDay === dg.date) {
+                return (
+                  <form
+                    key={dg.date}
+                    onSubmit={e => { e.preventDefault(); saveDayName(dg.date) }}
+                    className="flex items-center gap-1 border border-alpine-green rounded-full px-2 py-1"
+                  >
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
+                    <input
+                      type="text"
+                      value={editDayName}
+                      onChange={e => setEditDayName(e.target.value)}
+                      placeholder={dg.label}
+                      className="text-sm border-none outline-none w-28 bg-transparent"
+                      autoFocus
+                      onBlur={() => saveDayName(dg.date)}
+                    />
+                  </form>
+                )
+              }
+
+              return (
+                <button
+                  key={dg.date}
+                  onClick={() => handleToggleDay(dg.date)}
+                  onDoubleClick={() => isAdmin && startRenamingDay(dg.date)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    hiddenDays.has(dg.date)
+                      ? 'opacity-40 border-gray-200 bg-gray-50'
+                      : 'border-gray-300 bg-white hover:bg-gray-50'
+                  }`}
+                  title={isAdmin ? 'Click to toggle, double-click to rename' : 'Click to toggle'}
+                >
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
+                  <span>{customName ? `${customName}` : dg.label}</span>
+                  {customName && <span className="text-xs text-gray-400">{dg.label}</span>}
+                  <span className="text-xs text-gray-400">{dg.tracks.length}</span>
+                </button>
+              )
+            })}
           </div>
         )}
       </div>
@@ -264,6 +335,15 @@ export default function Norway() {
           isAdmin={isAdmin}
         />
       </div>
+
+      {/* Fullscreen photo overlay */}
+      {fullscreenPhoto && (
+        <FullscreenPhoto
+          photo={fullscreenPhoto}
+          tourName={getTourNameForPhoto(fullscreenPhoto)}
+          onClose={() => setFullscreenPhoto(null)}
+        />
+      )}
     </div>
   )
 }
