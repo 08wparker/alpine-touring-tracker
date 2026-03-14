@@ -134,14 +134,50 @@ export class StravaAPI {
     )
   }
 
-  // Decode Strava polyline to coordinates
+  // Haversine distance in km between two [lat, lng] points
+  static haversineKm(a: [number, number], b: [number, number]): number {
+    const R = 6371
+    const dLat = (b[0] - a[0]) * Math.PI / 180
+    const dLng = (b[1] - a[1]) * Math.PI / 180
+    const sinLat = Math.sin(dLat / 2)
+    const sinLng = Math.sin(dLng / 2)
+    const h = sinLat * sinLat +
+      Math.cos(a[0] * Math.PI / 180) * Math.cos(b[0] * Math.PI / 180) * sinLng * sinLng
+    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
+  }
+
+  // Remove GPS outlier points that are impossibly far from neighbors
+  static sanitizePolyline(points: Array<[number, number]>, maxJumpKm = 5): Array<[number, number]> {
+    if (points.length < 3) return points
+
+    const clean: Array<[number, number]> = [points[0]]
+    for (let i = 1; i < points.length - 1; i++) {
+      const prev = clean[clean.length - 1]
+      const curr = points[i]
+      const next = points[i + 1]
+      const distPrev = StravaAPI.haversineKm(prev, curr)
+      const distNext = StravaAPI.haversineKm(curr, next)
+      // Keep point if it's within maxJumpKm of at least one neighbor
+      if (distPrev <= maxJumpKm || distNext <= maxJumpKm) {
+        clean.push(curr)
+      }
+    }
+    // Always keep last point if it's close to its predecessor
+    const last = points[points.length - 1]
+    if (StravaAPI.haversineKm(clean[clean.length - 1], last) <= maxJumpKm) {
+      clean.push(last)
+    }
+    return clean
+  }
+
+  // Decode Strava polyline to coordinates, removing GPS outliers
   decodePolyline(polyline: string): Array<[number, number]> {
     if (!polyline) return []
-    
+
     try {
       const coordinates = decode(polyline)
-      // Convert from [lat, lng] to [lat, lng] format for Leaflet
-      return coordinates.map(coord => [coord[0], coord[1]] as [number, number])
+      const points = coordinates.map(coord => [coord[0], coord[1]] as [number, number])
+      return StravaAPI.sanitizePolyline(points)
     } catch (error) {
       console.error('Error decoding polyline:', error)
       return []

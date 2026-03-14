@@ -183,18 +183,48 @@ export async function processPhoto(
   const id = `photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const previewUrl = URL.createObjectURL(file)
 
-  const { coordinates, timestamp } = await extractPhotoGeo(file)
+  const { coordinates: exifCoords, timestamp } = await extractPhotoGeo(file)
 
-  // If EXIF has GPS, use it directly
-  if (coordinates) {
-    return {
-      id,
-      previewUrl,
-      timestamp,
-      coordinates,
-      source: 'exif',
-      caption: file.name.replace(/\.[^/.]+$/, ''),
-      uploaderName
+  // Try to interpolate from timestamp first (needed for EXIF validation)
+  let interpolatedCoords: [number, number] | null = null
+  let interpolatedActivityId: number | undefined
+  if (timestamp && activities.length > 0) {
+    const activity = findBestActivityForPhoto(timestamp, activities)
+    if (activity) {
+      interpolatedCoords = interpolatePositionOnPolyline(
+        timestamp,
+        activity.start_date,
+        activity.elapsed_time,
+        activity.summary_polyline
+      )
+      interpolatedActivityId = activity.id
+    }
+  }
+
+  // If EXIF has GPS, validate it against known tracks
+  if (exifCoords) {
+    let exifTrusted = true
+
+    // If we have an interpolated position, check if EXIF is suspiciously far from it
+    if (interpolatedCoords) {
+      const distKm = haversineDistance(exifCoords, interpolatedCoords) / 1000
+      if (distKm > 5) {
+        // EXIF GPS is >5km from where the timestamp says we should be — likely a glitch
+        console.warn(`Photo EXIF GPS is ${distKm.toFixed(1)}km from track position, using interpolation instead`)
+        exifTrusted = false
+      }
+    }
+
+    if (exifTrusted) {
+      return {
+        id,
+        previewUrl,
+        timestamp,
+        coordinates: exifCoords,
+        source: 'exif',
+        caption: file.name.replace(/\.[^/.]+$/, ''),
+        uploaderName
+      }
     }
   }
 
@@ -214,28 +244,17 @@ export async function processPhoto(
     }
   }
 
-  // Fallback 2: interpolate along activity polyline using timestamp
-  if (timestamp && activities.length > 0) {
-    const activity = findBestActivityForPhoto(timestamp, activities)
-    if (activity) {
-      const coords = interpolatePositionOnPolyline(
-        timestamp,
-        activity.start_date,
-        activity.elapsed_time,
-        activity.summary_polyline
-      )
-      if (coords) {
-        return {
-          id,
-          previewUrl,
-          timestamp,
-          coordinates: coords,
-          source: 'interpolated',
-          caption: file.name.replace(/\.[^/.]+$/, ''),
-          uploaderName,
-          activityId: activity.id
-        }
-      }
+  // Fallback 2: use interpolated position from activity polyline
+  if (interpolatedCoords) {
+    return {
+      id,
+      previewUrl,
+      timestamp,
+      coordinates: interpolatedCoords,
+      source: 'interpolated',
+      caption: file.name.replace(/\.[^/.]+$/, ''),
+      uploaderName,
+      activityId: interpolatedActivityId
     }
   }
 
