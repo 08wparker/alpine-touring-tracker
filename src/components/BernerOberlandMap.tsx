@@ -8,6 +8,7 @@ import { Summit } from '@/data/hauteRoute'
 import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
+import FitBounds from './FitBounds'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -70,9 +71,10 @@ interface BernerOberlandMapProps {
   photos?: GeoPhoto[]
   trip?: Trip | null
   userTracks?: DecodedTrack[]
+  onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [] }: BernerOberlandMapProps) {
+export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [], onFullscreenPhoto }: BernerOberlandMapProps) {
   // Center the map on the Jungfrau region
   const center: LatLngExpression = [46.55, 8.05]
   const zoom = 10
@@ -179,6 +181,9 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        {/* Auto-zoom to fit tracks */}
+        <FitBounds tracks={userTracks} />
+
         {/* Hut markers */}
         {bernerOberlandHuts.map((hut: any) => {
           const isVisited = visitedHuts.has(hut.id)
@@ -281,7 +286,7 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
 
         {/* Photo markers */}
         {photos.filter(p => p.coordinates).map(photo => (
-          <PhotoMarker key={photo.id} photo={photo} />
+          <PhotoMarker key={photo.id} photo={photo} onFullscreen={onFullscreenPhoto} />
         ))}
 
         {/* Trip participant tracks */}

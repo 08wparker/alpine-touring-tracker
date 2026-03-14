@@ -9,6 +9,7 @@ import { Hut, Summit } from '@/data/hauteRoute'
 import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
+import FitBounds from './FitBounds'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -121,6 +122,9 @@ export default function SilvrettaMap({ className = '', photos = [], trip, userTr
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* Auto-zoom to fit tracks */}
+        <FitBounds tracks={userTracks} />
 
         {/* Hut markers */}
         {silvrettaHuts.map((hut: Hut) => (

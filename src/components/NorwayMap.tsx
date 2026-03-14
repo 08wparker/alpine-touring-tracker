@@ -8,6 +8,7 @@ import { norwayHuts, norwaySummits } from '@/data/norway'
 import { Hut, Summit } from '@/data/hauteRoute'
 import { GeoPhoto } from '@/lib/photoGeo'
 import PhotoMarker from './PhotoMarker'
+import FitBounds from './FitBounds'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -111,6 +112,15 @@ export default function NorwayMap({ className = '', photos = [], userTracks = []
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* Auto-zoom to fit all visible tracks */}
+        <FitBounds tracks={
+          dayTracks.length > 0
+            ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
+            : allUserTracks.length > 0
+              ? allUserTracks.flatMap(ug => ug.tracks)
+              : userTracks
+        } />
 
         {/* Dock markers */}
         {norwayHuts.map((dock: Hut) => (

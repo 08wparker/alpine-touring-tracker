@@ -50,17 +50,6 @@ export const norwaySummits: Summit[] = [
     routeAccess: ['Åndalsnes', 'Vengedalen']
   },
   {
-    id: 'slogen',
-    name: 'Slogen',
-    elevation: 1564,
-    coordinates: [6.6728, 62.2081], // [lng, lat]
-    prominence: 1554,
-    difficulty: 'Difficult',
-    description: 'Sunnmøre icon rising directly from Hjørundfjorden. Sea-to-summit ski descent of 1564m vertical.',
-    firstAscent: '1843',
-    routeAccess: ['Boat access from Hjørundfjorden']
-  },
-  {
     id: 'kirketaket',
     name: 'Kirketaket',
     elevation: 1439,
