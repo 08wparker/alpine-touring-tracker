@@ -35,3 +35,6 @@ hut_geo_info/
 
 # App screenshots
 app screenshots/
+
+# Firebase secrets
+secrets/

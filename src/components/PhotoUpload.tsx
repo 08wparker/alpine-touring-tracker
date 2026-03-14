@@ -1,19 +1,45 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { processPhoto, GeoPhoto } from '@/lib/photoGeo'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { processPhoto, GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
+import { uploadPhoto } from '@/lib/photoStorage'
+import { savePhoto, getRegionPhotos } from '@/lib/firestoreCache'
 
 interface PhotoUploadProps {
   uploaderName: string
   onPhotosAdded: (photos: GeoPhoto[]) => void
-  trackPoints?: Array<{ lat: number; lng: number; time?: string; elevation?: number }>
+  activities?: ActivityForPhoto[]
+  region?: string
+  userId?: string
 }
 
-export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints = [] }: PhotoUploadProps) {
+export default function PhotoUpload({
+  uploaderName,
+  onPhotosAdded,
+  activities = [],
+  region = '',
+  userId = '',
+}: PhotoUploadProps) {
   const [processing, setProcessing] = useState(false)
   const [photos, setPhotos] = useState<GeoPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [loadedFromFirestore, setLoadedFromFirestore] = useState(false)
+
+  // Load existing photos from Firestore on mount
+  useEffect(() => {
+    if (!region || loadedFromFirestore) return
+    setLoadedFromFirestore(true)
+
+    getRegionPhotos(region).then(existing => {
+      if (existing.length > 0) {
+        setPhotos(existing)
+        onPhotosAdded(existing)
+      }
+    }).catch(err => {
+      console.error('Error loading photos from Firestore:', err)
+    })
+  }, [region, loadedFromFirestore, onPhotosAdded])
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
@@ -21,9 +47,38 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
 
     setProcessing(true)
     try {
-      const newPhotos = await Promise.all(
-        imageFiles.map(file => processPhoto(file, uploaderName, trackPoints))
-      )
+      const newPhotos: GeoPhoto[] = []
+
+      for (const file of imageFiles) {
+        // Process photo with interpolation support
+        const photo = await processPhoto(file, uploaderName, [], activities)
+        photo.userId = userId
+        photo.region = region
+
+        // Upload to Firebase Storage if we have a userId
+        if (userId) {
+          try {
+            const { storageUrl, thumbnailUrl } = await uploadPhoto(file, userId, photo.id)
+            photo.storageUrl = storageUrl
+            photo.thumbnailUrl = thumbnailUrl
+          } catch (err) {
+            console.error('Error uploading to Storage:', err)
+            // Continue with blob URL only
+          }
+        }
+
+        // Save metadata to Firestore
+        if (region) {
+          try {
+            await savePhoto(photo, region)
+          } catch (err) {
+            console.error('Error saving photo metadata:', err)
+          }
+        }
+
+        newPhotos.push(photo)
+      }
+
       setPhotos(prev => [...prev, ...newPhotos])
       onPhotosAdded(newPhotos)
     } catch (error) {
@@ -31,7 +86,7 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
     } finally {
       setProcessing(false)
     }
-  }, [uploaderName, trackPoints, onPhotosAdded])
+  }, [uploaderName, activities, onPhotosAdded, userId, region])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -50,6 +105,7 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
     switch (source) {
       case 'exif': return 'GPS from photo'
       case 'gps-match': return 'Matched to track'
+      case 'interpolated': return 'Track interpolated'
       case 'manual': return 'Manual'
       case 'none': return 'No location'
     }
@@ -59,6 +115,7 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
     switch (source) {
       case 'exif': return 'bg-green-100 text-green-700'
       case 'gps-match': return 'bg-blue-100 text-blue-700'
+      case 'interpolated': return 'bg-orange-100 text-orange-700'
       case 'manual': return 'bg-purple-100 text-purple-700'
       case 'none': return 'bg-gray-100 text-gray-500'
     }
@@ -89,12 +146,12 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
         {processing ? (
           <div className="flex items-center justify-center gap-2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-alpine-green"></div>
-            <span>Processing photos...</span>
+            <span>Processing & uploading photos...</span>
           </div>
         ) : (
           <div>
             <p className="text-mountain-gray">Drop photos here or click to upload</p>
-            <p className="text-sm text-gray-400 mt-1">GPS coordinates are automatically extracted from EXIF data</p>
+            <p className="text-sm text-gray-400 mt-1">Photos are placed on the map using EXIF GPS or track interpolation</p>
           </div>
         )}
       </div>
@@ -105,7 +162,7 @@ export default function PhotoUpload({ uploaderName, onPhotosAdded, trackPoints =
           {photos.map(photo => (
             <div key={photo.id} className="relative group">
               <img
-                src={photo.previewUrl}
+                src={photo.thumbnailUrl || photo.storageUrl || photo.previewUrl}
                 alt={photo.caption}
                 className="w-full h-32 object-cover rounded-lg"
               />

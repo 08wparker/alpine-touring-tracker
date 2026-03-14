@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
+import { saveUserActivities, getUserActivities, getUserMetadata } from '@/lib/firestoreCache'
 
 interface UserActivitiesProps {
   region?: 'haute-route' | 'berner-oberland' | 'ortler' | 'silvretta' | 'norway'
@@ -21,47 +22,134 @@ export default function UserActivities({
   const [activities, setActivities] = useState<StravaActivity[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastSynced, setLastSynced] = useState<Date | null>(null)
+  const [dataSource, setDataSource] = useState<string>('')
 
   useEffect(() => {
-    if (session?.accessToken) {
+    if (session?.accessToken && session?.user?.id) {
       fetchActivities()
     }
   }, [session, region])
 
-  const fetchActivities = async () => {
-    if (!session?.accessToken) return
+  const processAndSetActivities = (allActivities: StravaActivity[], stravaAPI: StravaAPI) => {
+    const skiTourActivities = stravaAPI.filterSkiTouringActivities(allActivities)
+    const regionActivities = region
+      ? stravaAPI.filterActivitiesByRegion(skiTourActivities, region)
+      : skiTourActivities
 
+    setActivities(regionActivities)
+    onActivitiesLoaded?.(regionActivities)
+  }
+
+  const fetchActivities = async (forceSync = false) => {
+    if (!session?.accessToken || !session?.user?.id) return
+
+    const userId = session.user.id
     setLoading(true)
     setError(null)
 
     try {
       const stravaAPI = new StravaAPI(session.accessToken)
-
-      // Check sessionStorage cache first to avoid rate limits
       const cacheKey = 'strava-all-activities'
-      let allActivities: StravaActivity[]
-      const cached = sessionStorage.getItem(cacheKey)
 
-      if (cached) {
-        allActivities = JSON.parse(cached)
-      } else {
-        allActivities = await stravaAPI.getAllActivities()
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(allActivities)) } catch {}
+      // --- Tier 1: sessionStorage (instant, current tab) ---
+      if (!forceSync) {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const allActivities: StravaActivity[] = JSON.parse(cached)
+          setDataSource('session cache')
+          processAndSetActivities(allActivities, stravaAPI)
+
+          // Check if Firestore has data; if not, backfill from sessionStorage
+          console.log('[Firestore] Checking metadata for user:', userId, '| Activities in cache:', allActivities.length)
+          getUserMetadata(userId).then(meta => {
+            console.log('[Firestore] getUserMetadata result:', meta)
+            if (meta) {
+              setLastSynced(meta.lastSynced)
+            } else if (allActivities.length > 0) {
+              // Firestore is empty — backfill ski activities only
+              const skiActivities = stravaAPI.filterSkiTouringActivities(allActivities)
+              console.log('[Firestore] No metadata found, backfilling', skiActivities.length, 'ski activities...')
+              saveUserActivities(
+                userId,
+                session.user.name || '',
+                session.user.image || '',
+                skiActivities
+              ).then(() => {
+                setLastSynced(new Date())
+                console.log('[Firestore] Backfill complete!')
+              }).catch(err => {
+                console.error('[Firestore] Backfill FAILED:', err)
+              })
+            }
+          }).catch(err => {
+            console.error('[Firestore] getUserMetadata FAILED:', err)
+          })
+
+          setLoading(false)
+          return
+        }
       }
 
-      // Filter to ski touring activities
-      const skiTourActivities = stravaAPI.filterSkiTouringActivities(allActivities)
+      // --- Tier 2: Firestore (fast, persistent) ---
+      if (!forceSync) {
+        try {
+          const firestoreActivities = await getUserActivities(userId)
+          if (firestoreActivities && firestoreActivities.length > 0) {
+            setDataSource('Firestore')
+            // Populate sessionStorage for next time
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify(firestoreActivities))
+            } catch {}
 
-      // Filter by region if specified
-      const regionActivities = region
-        ? stravaAPI.filterActivitiesByRegion(skiTourActivities, region)
-        : skiTourActivities
+            const meta = await getUserMetadata(userId)
+            if (meta) setLastSynced(meta.lastSynced)
 
-      setActivities(regionActivities)
-      onActivitiesLoaded?.(regionActivities)
+            processAndSetActivities(firestoreActivities, stravaAPI)
+            setLoading(false)
+            return
+          }
+        } catch (err) {
+          console.warn('Firestore cache miss or error, falling through to Strava:', err)
+        }
+      }
+
+      // --- Tier 3: Strava API (slow, rate-limited) ---
+      if (forceSync) {
+        sessionStorage.removeItem(cacheKey)
+      }
+
+      setDataSource('Strava API')
+      const allActivities = await stravaAPI.getAllActivities()
+
+      // Only cache if we got meaningful results
+      if (allActivities.length > 0) {
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(allActivities))
+        } catch {}
+
+        // Save ski activities only to Firestore in background
+        const skiActivities = stravaAPI.filterSkiTouringActivities(allActivities)
+        saveUserActivities(
+          userId,
+          session.user.name || '',
+          session.user.image || '',
+          skiActivities
+        ).then(() => {
+          setLastSynced(new Date())
+        }).catch(err => {
+          console.warn('Failed to save to Firestore:', err)
+        })
+      }
+
+      processAndSetActivities(allActivities, stravaAPI)
+
+      if (allActivities.length === 0) {
+        setError('Strava rate limit reached — try again in a few minutes')
+      }
     } catch (err) {
       console.error('Error fetching activities:', err)
-      setError('Failed to load activities from Strava')
+      setError('Failed to load activities')
     } finally {
       setLoading(false)
     }
@@ -89,6 +177,20 @@ export default function UserActivities({
     return `${Math.round(meters)}m`
   }
 
+  const formatLastSynced = () => {
+    if (!lastSynced) return null
+    const now = new Date()
+    const diffMs = now.getTime() - lastSynced.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${diffDays}d ago`
+  }
+
   if (!session) {
     return (
       <div className="bg-white rounded-lg shadow-lg p-6">
@@ -106,7 +208,7 @@ export default function UserActivities({
         <h2 className="text-2xl font-semibold mb-4">Your Ski Tours</h2>
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-alpine-green"></div>
-          <span>Loading activities...</span>
+          <span>Loading activities{dataSource ? ` from ${dataSource}` : ''}...</span>
         </div>
       </div>
     )
@@ -118,10 +220,10 @@ export default function UserActivities({
         <h2 className="text-2xl font-semibold mb-4">Your Ski Tours</h2>
         <div className="text-red-600 mb-4">{error}</div>
         <button
-          onClick={fetchActivities}
+          onClick={() => fetchActivities(true)}
           className="px-4 py-2 bg-alpine-green text-white rounded hover:bg-alpine-green-dark transition-colors"
         >
-          Retry
+          Sync with Strava
         </button>
       </div>
     )
@@ -138,17 +240,24 @@ export default function UserActivities({
             </span>
           )}
         </h2>
-        <button
-          onClick={fetchActivities}
-          className="text-sm px-3 py-1 text-alpine-green hover:bg-alpine-green hover:text-white rounded transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {lastSynced && (
+            <span className="text-xs text-mountain-gray">
+              Synced {formatLastSynced()}
+            </span>
+          )}
+          <button
+            onClick={() => fetchActivities(true)}
+            className="text-sm px-3 py-1 text-alpine-green hover:bg-alpine-green hover:text-white rounded transition-colors"
+          >
+            Sync with Strava
+          </button>
+        </div>
       </div>
 
       {activities.length === 0 ? (
         <p className="text-mountain-gray">
-          No ski touring activities found in this region. 
+          No ski touring activities found in this region.
           {region && " Try a different region or check your Strava activity types."}
         </p>
       ) : (
@@ -169,7 +278,7 @@ export default function UserActivities({
                   {formatDate(activity.start_date_local)}
                 </span>
               </div>
-              
+
               <div className="text-sm text-mountain-gray mb-2">
                 <span className="inline-block bg-gray-100 px-2 py-1 rounded mr-2">
                   {activity.sport_type || activity.type}

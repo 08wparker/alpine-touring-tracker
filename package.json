@@ -12,6 +12,7 @@
     "@googlemaps/polyline-codec": "^1.0.28",
     "@types/leaflet": "^1.9.20",
     "exifr": "^7.1.3",
+    "firebase": "^12.10.0",
     "leaflet": "^1.9.4",
     "leaflet.geodesic": "^2.7.1",
     "next": "14.2.5",

@@ -3,10 +3,8 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip } from 'react-leaflet'
 import { LatLngExpression } from 'leaflet'
 import L from 'leaflet'
-import { useState, useEffect } from 'react'
 import { bernerOberlandHuts, bernerOberlandSummits } from '@/data/bernerOberland'
 import { Summit } from '@/data/hauteRoute'
-import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
 import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
@@ -79,41 +77,18 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
   const center: LatLngExpression = [46.55, 8.05]
   const zoom = 10
 
-  // State for bulk activities
-  const [bulkActivities, setBulkActivities] = useState<BulkActivity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  // Load bulk activities and detect GPS huts
-  useEffect(() => {
-    const loadActivities = async () => {
-      try {
-        const activities = await loadBulkActivities('berner-oberland')
-        setBulkActivities(activities)
-      } catch (error) {
-        console.error('Error loading bulk activities:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadActivities()
-  }, [])
-
-  // Function to check if a hut was visited based on GPS track endpoints
+  // Determine visited huts based on user track endpoints
   const getVisitedHuts = () => {
     const visitedHutIds = new Set<string>()
 
-    bulkActivities.forEach(activity => {
-      const isExitDay = activity.name.toLowerCase().includes('exit') ||
-                       activity.name.toLowerCase().includes('descent') ||
-                       activity.name.toLowerCase().includes('return')
-
-      if (activity.track.points.length > 0 && !isExitDay) {
-        const endPoint = activity.track.points[activity.track.points.length - 1]
+    userTracks.forEach(track => {
+      if (track.polyline.length > 0) {
+        const endPoint = track.polyline[track.polyline.length - 1]
 
         bernerOberlandHuts.forEach(hut => {
           const hutLat = hut.coordinates[1]
           const hutLng = hut.coordinates[0]
-          const distance = getDistance(endPoint.lat, endPoint.lng, hutLat, hutLng)
+          const distance = getDistance(endPoint[0], endPoint[1], hutLat, hutLng)
 
           if (distance < 0.3) {
             visitedHutIds.add(hut.id)
@@ -285,33 +260,6 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
             </div>
           </Popup>
         </Polyline>
-
-        {/* Real GPS tracks from bulk data */}
-        {bulkActivities.map((activity) => (
-          <Polyline
-            key={`bulk-${activity.id}`}
-            positions={activity.polyline}
-            color="#f97316"
-            weight={4}
-            opacity={0.9}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold">{activity.name}</h3>
-                <p className="text-sm text-gray-600">Real GPS Track - {activity.track.type}</p>
-                <div className="text-sm">
-                  <p><strong>Track Points:</strong> {activity.track.points.length}</p>
-                  {activity.track.points.length > 0 && (
-                    <>
-                      <p><strong>Start Elevation:</strong> {activity.track.points[0].elevation?.toFixed(0)}m</p>
-                      <p><strong>End Elevation:</strong> {activity.track.points[activity.track.points.length - 1].elevation?.toFixed(0)}m</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Popup>
-          </Polyline>
-        ))}
 
         {/* User Strava tracks */}
         {userTracks.map(track => (

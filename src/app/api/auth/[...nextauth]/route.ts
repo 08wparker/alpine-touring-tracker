@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth'
 import type { NextAuthOptions } from 'next-auth'
+import GoogleProvider from 'next-auth/providers/google'
 
 const authOptions: NextAuthOptions = {
   providers: [
@@ -46,6 +47,10 @@ const authOptions: NextAuthOptions = {
         }
       },
     },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
   ],
   callbacks: {
     async jwt({ token, account }) {
@@ -53,6 +58,12 @@ const authOptions: NextAuthOptions = {
         token.accessToken = account.access_token
         token.refreshToken = account.refresh_token
         token.expiresAt = account.expires_at
+        token.provider = account.provider
+      }
+
+      // Google tokens don't need Strava-style refresh
+      if (token.provider === 'google') {
+        return token
       }
 
       // Return token if not expired
@@ -60,7 +71,7 @@ const authOptions: NextAuthOptions = {
         return token
       }
 
-      // Token expired — refresh it
+      // Strava token expired — refresh it
       if (token.refreshToken) {
         try {
           const response = await fetch('https://www.strava.com/oauth/token', {
@@ -91,6 +102,13 @@ const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       session.accessToken = token.accessToken as string
+      session.provider = token.provider as string
+      if (token.sub) {
+        session.user = session.user || {}
+        session.user.id = token.sub
+        session.user.name = token.name as string
+        session.user.image = token.picture as string
+      }
       return session
     },
   },

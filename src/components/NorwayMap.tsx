@@ -3,10 +3,9 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { LatLngExpression } from 'leaflet'
 import L from 'leaflet'
-import { useState, useEffect } from 'react'
+
 import { norwayHuts, norwaySummits } from '@/data/norway'
 import { Hut, Summit } from '@/data/hauteRoute'
-import { loadBulkActivities, type BulkActivity } from '@/lib/bulkDataLoader'
 import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
@@ -55,37 +54,25 @@ interface DecodedTrack {
   polyline: [number, number][]
 }
 
+export interface UserTrackGroup {
+  userId: string
+  userName: string
+  color: string
+  tracks: DecodedTrack[]
+}
+
 interface NorwayMapProps {
   className?: string
   photos?: GeoPhoto[]
   trip?: Trip | null
   userTracks?: DecodedTrack[]
+  allUserTracks?: UserTrackGroup[]
 }
 
-export default function NorwayMap({ className = '', photos = [], trip, userTracks = [] }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [] }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
-
-  // State for bulk activities
-  const [bulkActivities, setBulkActivities] = useState<BulkActivity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  // Load bulk activities on component mount
-  useEffect(() => {
-    const loadActivities = async () => {
-      try {
-        const activities = await loadBulkActivities('norway')
-        setBulkActivities(activities)
-      } catch (error) {
-        console.error('Error loading bulk activities:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadActivities()
-  }, [])
 
   // Romsdalsfjorden coastline (simplified)
   const fjordOutline: LatLngExpression[] = [
@@ -105,10 +92,19 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
       <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
         <h4 className="font-bold mb-2">Map Features</h4>
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-orange-500"></div>
-            <span>Real GPS Tracks</span>
-          </div>
+          {allUserTracks.length > 0 ? (
+            allUserTracks.map(ug => (
+              <div key={ug.userId} className="flex items-center gap-2">
+                <div className="w-4 h-0.5" style={{ backgroundColor: ug.color }}></div>
+                <span>{ug.userName}</span>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-0.5 bg-orange-500"></div>
+              <span>Real GPS Tracks</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-blue-400" style={{backgroundImage: 'repeating-linear-gradient(to right, #60a5fa 0px, #60a5fa 3px, transparent 3px, transparent 6px)'}}></div>
             <span>Fjord Coastline</span>
@@ -201,36 +197,28 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
           </Popup>
         </Polyline>
 
-        {/* Real GPS tracks from bulk data */}
-        {bulkActivities.map((activity) => (
-          <Polyline
-            key={`bulk-${activity.id}`}
-            positions={activity.polyline}
-            color="#f97316"
-            weight={4}
-            opacity={0.9}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold">{activity.name}</h3>
-                <p className="text-sm text-gray-600">Real GPS Track - {activity.track.type}</p>
-                <p className="text-sm mb-2">Actual backcountry ski tour from Strava data</p>
-                <div className="text-sm">
-                  <p><strong>Track Points:</strong> {activity.track.points.length}</p>
-                  <p><strong>Activity ID:</strong> {activity.id}</p>
-                  {activity.track.points.length > 0 && (
-                    <>
-                      <p><strong>Start Elevation:</strong> {activity.track.points[0].elevation?.toFixed(0)}m</p>
-                      <p><strong>End Elevation:</strong> {activity.track.points[activity.track.points.length - 1].elevation?.toFixed(0)}m</p>
-                    </>
-                  )}
+        {/* Multi-user Strava tracks */}
+        {allUserTracks.map(userGroup =>
+          userGroup.tracks.map(track => (
+            <Polyline
+              key={`${userGroup.userId}-${track.id}`}
+              positions={track.polyline}
+              color={userGroup.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: userGroup.color }}>by {userGroup.userName}</p>
                 </div>
-              </div>
-            </Popup>
-          </Polyline>
-        ))}
-        {/* User Strava tracks */}
-        {userTracks.map(track => (
+              </Popup>
+            </Polyline>
+          ))
+        )}
+
+        {/* Legacy single-user tracks (fallback) */}
+        {allUserTracks.length === 0 && userTracks.map(track => (
           <Polyline
             key={`user-${track.id}`}
             positions={track.polyline}

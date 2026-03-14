@@ -35,7 +35,7 @@ export default function PhotoMarker({ photo }: PhotoMarkerProps) {
       <Popup>
         <div className="p-1 max-w-[200px]">
           <img
-            src={photo.previewUrl}
+            src={photo.thumbnailUrl || photo.storageUrl || photo.previewUrl}
             alt={photo.caption}
             className="w-full h-auto rounded mb-2"
           />
@@ -47,7 +47,7 @@ export default function PhotoMarker({ photo }: PhotoMarkerProps) {
             </p>
           )}
           <p className="text-xs text-gray-400 mt-1">
-            Location: {photo.source === 'exif' ? 'Photo GPS' : photo.source === 'gps-match' ? 'Track match' : 'Manual'}
+            Location: {photo.source === 'exif' ? 'Photo GPS' : photo.source === 'interpolated' ? 'Track interpolated' : photo.source === 'gps-match' ? 'Track match' : 'Manual'}
           </p>
         </div>
       </Popup>
