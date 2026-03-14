@@ -3,28 +3,36 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { processPhoto, GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
 import { uploadPhoto } from '@/lib/photoStorage'
-import { savePhoto, getRegionPhotos } from '@/lib/firestoreCache'
+import { savePhoto, getRegionPhotos, deletePhoto, updatePhotoCaption } from '@/lib/firestoreCache'
 
 interface PhotoUploadProps {
   uploaderName: string
   onPhotosAdded: (photos: GeoPhoto[]) => void
+  onPhotoDeleted?: (photoId: string) => void
+  onPhotoRenamed?: (photoId: string, newCaption: string) => void
   activities?: ActivityForPhoto[]
   region?: string
   userId?: string
+  isAdmin?: boolean
 }
 
 export default function PhotoUpload({
   uploaderName,
   onPhotosAdded,
+  onPhotoDeleted,
+  onPhotoRenamed,
   activities = [],
   region = '',
   userId = '',
+  isAdmin = false,
 }: PhotoUploadProps) {
   const [processing, setProcessing] = useState(false)
   const [photos, setPhotos] = useState<GeoPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
   const [loadedFromFirestore, setLoadedFromFirestore] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editCaption, setEditCaption] = useState('')
 
   // Load existing photos from Firestore on mount
   useEffect(() => {
@@ -50,12 +58,10 @@ export default function PhotoUpload({
       const newPhotos: GeoPhoto[] = []
 
       for (const file of imageFiles) {
-        // Process photo with interpolation support
         const photo = await processPhoto(file, uploaderName, [], activities)
         photo.userId = userId
         photo.region = region
 
-        // Upload to Firebase Storage (use 'anonymous' folder if no userId)
         try {
           const { storageUrl, thumbnailUrl } = await uploadPhoto(file, userId || 'anonymous', photo.id)
           photo.storageUrl = storageUrl
@@ -64,7 +70,6 @@ export default function PhotoUpload({
           console.error('Error uploading to Storage:', err)
         }
 
-        // Save metadata to Firestore
         if (region) {
           try {
             await savePhoto(photo, region)
@@ -98,11 +103,45 @@ export default function PhotoUpload({
 
   const handleDragLeave = useCallback(() => setDragOver(false), [])
 
+  const canManagePhoto = (photo: GeoPhoto) => {
+    if (isAdmin) return true
+    if (userId && photo.userId === userId) return true
+    return false
+  }
+
+  const handleDelete = async (photo: GeoPhoto) => {
+    if (!confirm(`Delete "${photo.caption}"?`)) return
+    try {
+      await deletePhoto(photo.id)
+      setPhotos(prev => prev.filter(p => p.id !== photo.id))
+      onPhotoDeleted?.(photo.id)
+    } catch (err) {
+      console.error('Error deleting photo:', err)
+    }
+  }
+
+  const startRename = (photo: GeoPhoto) => {
+    setEditingId(photo.id)
+    setEditCaption(photo.caption)
+  }
+
+  const handleRename = async (photoId: string) => {
+    if (!editCaption.trim()) return
+    try {
+      await updatePhotoCaption(photoId, editCaption.trim())
+      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: editCaption.trim() } : p))
+      onPhotoRenamed?.(photoId, editCaption.trim())
+      setEditingId(null)
+    } catch (err) {
+      console.error('Error renaming photo:', err)
+    }
+  }
+
   const sourceLabel = (source: GeoPhoto['source']) => {
     switch (source) {
-      case 'exif': return 'GPS from photo'
-      case 'gps-match': return 'Matched to track'
-      case 'interpolated': return 'Track interpolated'
+      case 'exif': return 'Photo GPS'
+      case 'gps-match': return 'Track match'
+      case 'interpolated': return 'Interpolated'
       case 'manual': return 'Manual'
       case 'none': return 'No location'
     }
@@ -120,7 +159,10 @@ export default function PhotoUpload({
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      <h2 className="text-2xl font-semibold mb-4">Trip Photos</h2>
+      <h2 className="text-2xl font-semibold mb-4">
+        Trip Photos
+        {photos.length > 0 && <span className="text-sm text-mountain-gray ml-2">({photos.length})</span>}
+      </h2>
 
       {/* Drop zone */}
       <div
@@ -128,7 +170,7 @@ export default function PhotoUpload({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
           dragOver ? 'border-alpine-green bg-alpine-green/5' : 'border-gray-300 hover:border-alpine-green'
         }`}
       >
@@ -163,11 +205,57 @@ export default function PhotoUpload({
                 alt={photo.caption}
                 className="w-full h-32 object-cover rounded-lg"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 rounded-b-lg">
-                <span className={`inline-block px-1.5 py-0.5 rounded text-xs ${sourceColor(photo.source)}`}>
-                  {sourceLabel(photo.source)}
-                </span>
+
+              {/* Caption / rename */}
+              <div className="mt-1">
+                {editingId === photo.id ? (
+                  <form onSubmit={e => { e.preventDefault(); handleRename(photo.id) }} className="flex gap-1">
+                    <input
+                      type="text"
+                      value={editCaption}
+                      onChange={e => setEditCaption(e.target.value)}
+                      className="text-xs border rounded px-1 py-0.5 w-full"
+                      autoFocus
+                      onBlur={() => handleRename(photo.id)}
+                    />
+                  </form>
+                ) : (
+                  <p className="text-xs text-gray-700 truncate">{photo.caption}</p>
+                )}
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`inline-block px-1.5 py-0.5 rounded text-xs ${sourceColor(photo.source)}`}>
+                    {sourceLabel(photo.source)}
+                  </span>
+                  {photo.uploaderName && (
+                    <span className="text-xs text-gray-400 truncate">{photo.uploaderName}</span>
+                  )}
+                </div>
               </div>
+
+              {/* Management buttons */}
+              {canManagePhoto(photo) && (
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); startRename(photo) }}
+                    className="bg-white/90 hover:bg-white rounded p-1 shadow text-xs"
+                    title="Rename"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(photo) }}
+                    className="bg-white/90 hover:bg-red-100 rounded p-1 shadow text-red-500 text-xs"
+                    title="Delete"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

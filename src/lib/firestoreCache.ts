@@ -218,6 +218,12 @@ export async function deletePhoto(photoId: string): Promise<void> {
   await deleteDoc(doc(db, 'photos', photoId))
 }
 
+export async function updatePhotoCaption(photoId: string, caption: string): Promise<void> {
+  const photoRef = doc(db, 'photos', photoId)
+  const { updateDoc } = await import('firebase/firestore')
+  await updateDoc(photoRef, { caption })
+}
+
 // --- Multi-user loading ---
 
 export interface UserWithActivities {

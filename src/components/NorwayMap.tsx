@@ -7,7 +7,6 @@ import L from 'leaflet'
 import { norwayHuts, norwaySummits } from '@/data/norway'
 import { Hut, Summit } from '@/data/hauteRoute'
 import { GeoPhoto } from '@/lib/photoGeo'
-import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
 
 // Fix for default markers in Next.js
@@ -72,7 +71,6 @@ export interface UserTrackGroup {
 interface NorwayMapProps {
   className?: string
   photos?: GeoPhoto[]
-  trip?: Trip | null
   userTracks?: DecodedTrack[]
   allUserTracks?: UserTrackGroup[]
   dayTracks?: DayTrackGroup[]
@@ -82,7 +80,7 @@ interface NorwayMapProps {
   onToggleUser?: (userId: string) => void
 }
 
-export default function NorwayMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
@@ -231,26 +229,6 @@ export default function NorwayMap({ className = '', photos = [], trip, userTrack
           <PhotoMarker key={photo.id} photo={photo} />
         ))}
 
-        {/* Trip participant tracks */}
-        {trip?.participants.map(participant =>
-          participant.tracks.map(track => (
-            <Polyline
-              key={track.id}
-              positions={track.polyline}
-              color={participant.color}
-              weight={4}
-              opacity={0.9}
-            >
-              <Popup>
-                <div className="p-2">
-                  <h3 className="font-bold">{track.name}</h3>
-                  <p className="text-sm" style={{ color: participant.color }}>{participant.name}</p>
-                  <p className="text-sm text-gray-500">{track.date}</p>
-                </div>
-              </Popup>
-            </Polyline>
-          ))
-        )}
       </MapContainer>
     </div>
   )

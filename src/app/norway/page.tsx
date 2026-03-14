@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
-import { Trip } from '@/types/trip'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
 import { getAllUsersActivities, UserWithActivities } from '@/lib/firestoreCache'
 import { UserTrackGroup, DayTrackGroup } from '@/components/NorwayMap'
@@ -15,7 +14,6 @@ const NorwayMap = dynamic(() => import('@/components/NorwayMap'), {
 })
 
 const PhotoUpload = dynamic(() => import('@/components/PhotoUpload'), { ssr: false })
-const TripManager = dynamic(() => import('@/components/TripManager'), { ssr: false })
 const UserActivities = dynamic(() => import('@/components/UserActivities'), { ssr: false })
 
 interface DecodedTrack {
@@ -36,36 +34,34 @@ function isInNorway(activity: StravaActivity): boolean {
 
 // Distinct colors for each day
 const DAY_COLORS = [
-  '#f97316', // orange
-  '#3b82f6', // blue
-  '#10b981', // emerald
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#f59e0b', // amber
-  '#6366f1', // indigo
-  '#84cc16', // lime
-  '#06b6d4', // cyan
-  '#d946ef', // fuchsia
+  '#f97316', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#ec4899',
+  '#14b8a6', '#f59e0b', '#6366f1', '#84cc16', '#06b6d4', '#d946ef',
 ]
 
-// Format date string to readable label
 function formatDayLabel(dateStr: string): string {
   const d = new Date(dateStr + 'T12:00:00')
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Admin user IDs (Strava athlete IDs, comma-separated)
+const ADMIN_USER_IDS = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS || '').split(',').filter(Boolean)
+
 export default function Norway() {
   const { data: session } = useSession()
   const [photos, setPhotos] = useState<GeoPhoto[]>([])
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null)
   const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null)
   const [userTracks, setUserTracks] = useState<DecodedTrack[]>([])
   const [allUserTracks, setAllUserTracks] = useState<UserTrackGroup[]>([])
   const [allDecodedTracks, setAllDecodedTracks] = useState<DecodedTrack[]>([])
   const [currentUserActivities, setCurrentUserActivities] = useState<ActivityForPhoto[]>([])
   const [hiddenDays, setHiddenDays] = useState<Set<string>>(new Set())
+
+  const currentUserId = session?.user?.id || ''
+  // Admin if in the admin list, OR if logged in via Strava (app owner — Strava limits to 1 athlete)
+  const isAdmin = !!(currentUserId && (
+    ADMIN_USER_IDS.includes(currentUserId) ||
+    session?.provider === 'strava'
+  ))
 
   // Load all users' tracks from Firestore on mount
   useEffect(() => {
@@ -99,7 +95,6 @@ export default function Norway() {
       setAllUserTracks(trackGroups)
       setAllDecodedTracks(allTracks)
 
-      // Set current user's activities for photo interpolation
       if (session?.user?.id) {
         const currentUser = allUsers.find(u => u.userId === session.user!.id)
         if (currentUser) {
@@ -122,21 +117,16 @@ export default function Norway() {
     })
   }, [session?.user?.id])
 
-  // Build day-grouped tracks
   const dayTracks = useMemo((): DayTrackGroup[] => {
     const byDay = new Map<string, DecodedTrack[]>()
-
     for (const track of allDecodedTracks) {
       const day = track.date || 'unknown'
       if (!byDay.has(day)) byDay.set(day, [])
       byDay.get(day)!.push(track)
     }
-
-    // Sort by date (newest first)
     const sortedDays = Array.from(byDay.entries())
       .filter(([day]) => day !== 'unknown')
       .sort(([a], [b]) => b.localeCompare(a))
-
     return sortedDays.map(([date, tracks], idx) => ({
       date,
       label: formatDayLabel(date),
@@ -151,6 +141,14 @@ export default function Norway() {
       const unique = newPhotos.filter(p => !existingIds.has(p.id))
       return [...prev, ...unique]
     })
+  }, [])
+
+  const handlePhotoDeleted = useCallback((photoId: string) => {
+    setPhotos(prev => prev.filter(p => p.id !== photoId))
+  }, [])
+
+  const handlePhotoRenamed = useCallback((photoId: string, newCaption: string) => {
+    setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, caption: newCaption } : p))
   }, [])
 
   const handleActivitySelect = useCallback((activity: StravaActivity) => {
@@ -213,7 +211,6 @@ export default function Norway() {
           <NorwayMap
             className="h-full w-full"
             photos={photos}
-            trip={activeTrip}
             userTracks={userTracks}
             allUserTracks={allUserTracks}
             dayTracks={dayTracks}
@@ -254,20 +251,17 @@ export default function Norway() {
         />
       </div>
 
-      {/* Trip Manager & Photos side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8">
-        <TripManager
-          region="norway"
-          onTripLoaded={setActiveTrip}
-          allUserTracks={allUserTracks}
-          photoCount={photos.length}
-        />
+      {/* Photos */}
+      <div className="mb-6 md:mb-8">
         <PhotoUpload
           uploaderName={session?.user?.name || 'Anonymous'}
           onPhotosAdded={handlePhotosAdded}
+          onPhotoDeleted={handlePhotoDeleted}
+          onPhotoRenamed={handlePhotoRenamed}
           activities={currentUserActivities}
           region="norway"
-          userId={session?.user?.id || ''}
+          userId={currentUserId}
+          isAdmin={isAdmin}
         />
       </div>
     </div>
