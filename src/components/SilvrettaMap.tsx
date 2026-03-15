@@ -10,6 +10,7 @@ import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
 import FitBounds from './FitBounds'
+import { UserTrackGroup, DayTrackGroup } from './NorwayMap'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -50,6 +51,7 @@ const summitIcon = new L.DivIcon({
 interface DecodedTrack {
   id: number
   name: string
+  date?: string
   polyline: [number, number][]
 }
 
@@ -58,9 +60,15 @@ interface SilvrettaMapProps {
   photos?: GeoPhoto[]
   trip?: Trip | null
   userTracks?: DecodedTrack[]
+  allUserTracks?: UserTrackGroup[]
+  dayTracks?: DayTrackGroup[]
+  hiddenDays?: Set<string>
+  tourNames?: Map<string, string>
+  focusDay?: string | null
+  onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function SilvrettaMap({ className = '', photos = [], trip, userTracks = [] }: SilvrettaMapProps) {
+export default function SilvrettaMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), tourNames = new Map(), focusDay, onFullscreenPhoto }: SilvrettaMapProps) {
   // Center the map on the Silvretta region
   const center: LatLngExpression = [46.87, 10.1]
   const zoom = 10
@@ -77,6 +85,8 @@ export default function SilvrettaMap({ className = '', photos = [], trip, userTr
     [46.8800, 9.9500],
   ]
 
+  const hasDayTracks = dayTracks.length > 0
+
   return (
     <div className={`${className} relative`}>
       {/* Route Legend */}
@@ -85,7 +95,7 @@ export default function SilvrettaMap({ className = '', photos = [], trip, userTr
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-orange-500"></div>
-            <span>Real GPS Tracks</span>
+            <span>GPS Tracks</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-gray-500" style={{backgroundImage: 'repeating-linear-gradient(to right, #6b7280 0px, #6b7280 3px, transparent 3px, transparent 6px)'}}></div>
@@ -123,8 +133,16 @@ export default function SilvrettaMap({ className = '', photos = [], trip, userTr
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Auto-zoom to fit tracks */}
-        <FitBounds tracks={userTracks} />
+        {/* Auto-zoom to fit visible tracks (or focused day) */}
+        <FitBounds tracks={
+          focusDay
+            ? dayTracks.filter(dg => dg.date === focusDay).flatMap(dg => dg.tracks)
+            : hasDayTracks
+              ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
+              : allUserTracks.length > 0
+                ? allUserTracks.flatMap(ug => ug.tracks)
+                : userTracks
+        } />
 
         {/* Hut markers */}
         {silvrettaHuts.map((hut: Hut) => (
@@ -190,27 +208,50 @@ export default function SilvrettaMap({ className = '', photos = [], trip, userTr
           </Popup>
         </Polyline>
 
-        {/* User Strava tracks */}
-        {userTracks.map(track => (
-          <Polyline
-            key={`user-${track.id}`}
-            positions={track.polyline}
-            color="#f97316"
-            weight={4}
-            opacity={0.9}
-          >
-            <Popup>
-              <div className="p-2">
-                <h3 className="font-bold">{track.name}</h3>
-                <p className="text-sm text-gray-600">Strava GPS Track</p>
-              </div>
-            </Popup>
-          </Polyline>
-        ))}
+        {/* Day-colored Strava tracks */}
+        {hasDayTracks ? (
+          dayTracks.filter(dg => !hiddenDays.has(dg.date)).map(dayGroup =>
+            dayGroup.tracks.map(track => (
+              <Polyline
+                key={`day-${track.id}`}
+                positions={track.polyline}
+                color={dayGroup.color}
+                weight={4}
+                opacity={0.9}
+              >
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-bold">{track.name}</h3>
+                    <p className="text-sm" style={{ color: dayGroup.color }}>
+                      {tourNames.get(dayGroup.date) || dayGroup.label}
+                    </p>
+                  </div>
+                </Popup>
+              </Polyline>
+            ))
+          )
+        ) : (
+          userTracks.map(track => (
+            <Polyline
+              key={`user-${track.id}`}
+              positions={track.polyline}
+              color="#f97316"
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm text-gray-600">Strava GPS Track</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
 
         {/* Photo markers */}
         {photos.filter(p => p.coordinates).map(photo => (
-          <PhotoMarker key={photo.id} photo={photo} />
+          <PhotoMarker key={photo.id} photo={photo} onFullscreen={onFullscreenPhoto} />
         ))}
 
         {/* Trip participant tracks */}

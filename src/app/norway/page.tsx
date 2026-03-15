@@ -17,6 +17,7 @@ const PhotoUpload = dynamic(() => import('@/components/PhotoUpload'), { ssr: fal
 const UserActivities = dynamic(() => import('@/components/UserActivities'), { ssr: false })
 const FullscreenPhoto = dynamic(() => import('@/components/FullscreenPhoto'), { ssr: false })
 const PhotoCarousel = dynamic(() => import('@/components/PhotoCarousel'), { ssr: false })
+const DaySelector = dynamic(() => import('@/components/DaySelector'), { ssr: false })
 
 interface DecodedTrack {
   id: number
@@ -204,17 +205,22 @@ export default function Norway() {
     )
   }, [])
 
-  const handleToggleDay = useCallback((date: string) => {
-    setHiddenDays(prev => {
-      const next = new Set(prev)
-      if (next.has(date)) {
-        next.delete(date)
-      } else {
-        next.add(date)
-      }
-      return next
-    })
-  }, [])
+  const handleSelectDay = useCallback((date: string) => {
+    if (!date) {
+      setHiddenDays(new Set())
+      setFocusDay(null)
+      return
+    }
+    const visibleDays = dayTracks.filter(dg => !hiddenDays.has(dg.date))
+    if (visibleDays.length === 1 && visibleDays[0].date === date) {
+      setHiddenDays(new Set())
+      setFocusDay(null)
+    } else {
+      setHiddenDays(new Set(dayTracks.filter(dg => dg.date !== date).map(dg => dg.date)))
+      setFocusDay(date)
+      setTimeout(() => setFocusDay(null), 1000)
+    }
+  }, [dayTracks, hiddenDays])
 
   const startRenamingDay = (date: string) => {
     setEditingDay(date)
@@ -242,11 +248,9 @@ export default function Norway() {
 
   // Find tour name for a photo by its date
   const handleShowOnMap = useCallback((date: string) => {
-    setHiddenDays(new Set(dayTracks.filter(dg => dg.date !== date).map(dg => dg.date)))
-    setFocusDay(date)
+    handleSelectDay(date)
     mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setTimeout(() => setFocusDay(null), 1000)
-  }, [dayTracks])
+  }, [handleSelectDay])
 
   const getTourNameForPhoto = useCallback((photo: GeoPhoto): string | undefined => {
     if (!photo.timestamp) return undefined
@@ -273,6 +277,21 @@ export default function Norway() {
       {/* Interactive Map */}
       <div ref={mapRef} className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
         <h2 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">Regional Map</h2>
+
+        {/* Day selector above map */}
+        <DaySelector
+          dayTracks={dayTracks}
+          hiddenDays={hiddenDays}
+          onSelectDay={handleSelectDay}
+          tourNames={tourNames}
+          isAdmin={isAdmin}
+          editingDay={editingDay}
+          editDayName={editDayName}
+          onStartRenaming={startRenamingDay}
+          onEditDayNameChange={setEditDayName}
+          onSaveDayName={saveDayName}
+        />
+
         <div className="h-[350px] md:h-[500px] rounded-lg overflow-hidden">
           <NorwayMap
             className="h-full w-full"
@@ -281,70 +300,11 @@ export default function Norway() {
             allUserTracks={allUserTracks}
             dayTracks={dayTracks}
             hiddenDays={hiddenDays}
-            onToggleDay={handleToggleDay}
             tourNames={tourNames}
             focusDay={focusDay}
             onFullscreenPhoto={setFullscreenPhoto}
           />
         </div>
-
-        {/* Day legend below map */}
-        {dayTracks.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {dayTracks.map(dg => {
-              const customName = tourNames.get(dg.date)
-
-              if (editingDay === dg.date) {
-                return (
-                  <form
-                    key={dg.date}
-                    onSubmit={e => { e.preventDefault(); saveDayName(dg.date) }}
-                    className="flex items-center gap-1 border border-alpine-green rounded-full px-2 py-1"
-                  >
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
-                    <input
-                      type="text"
-                      value={editDayName}
-                      onChange={e => setEditDayName(e.target.value)}
-                      placeholder={dg.label}
-                      className="text-sm border-none outline-none w-28 bg-transparent"
-                      autoFocus
-                      onBlur={() => saveDayName(dg.date)}
-                    />
-                  </form>
-                )
-              }
-
-              return (
-                <div key={dg.date} className="flex items-center gap-0.5">
-                  <button
-                    onClick={() => handleToggleDay(dg.date)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                      hiddenDays.has(dg.date)
-                        ? 'opacity-40 border-gray-200 bg-gray-50'
-                        : 'border-gray-300 bg-white hover:bg-gray-50'
-                    }`}
-                    title="Click to toggle visibility"
-                  >
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: dg.color }}></div>
-                    <span>{customName ? `${customName}` : dg.label}</span>
-                    {customName && <span className="text-xs text-gray-400">{dg.label}</span>}
-                    <span className="text-xs text-gray-400">{dg.tracks.length}</span>
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => startRenamingDay(dg.date)}
-                      className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Rename tour day"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
       </div>
 
       {/* Photo Carousel */}
