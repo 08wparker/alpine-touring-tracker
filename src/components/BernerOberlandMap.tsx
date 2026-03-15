@@ -80,10 +80,11 @@ interface BernerOberlandMapProps {
   hiddenUserIds?: Set<string>
   onToggleUser?: (userId: string) => void
   tourNames?: Map<string, string>
+  focusDay?: string | null
   onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), onFullscreenPhoto }: BernerOberlandMapProps) {
+export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), focusDay, onFullscreenPhoto }: BernerOberlandMapProps) {
   // Center the map on the Jungfrau region
   const center: LatLngExpression = [46.55, 8.05]
   const zoom = 10
@@ -155,13 +156,15 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Auto-zoom to fit all visible tracks */}
+        {/* Auto-zoom to fit visible tracks (or focused day) */}
         <FitBounds tracks={
-          dayTracks.length > 0
-            ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
-            : allUserTracks.length > 0
-              ? allUserTracks.flatMap(ug => ug.tracks)
-              : userTracks
+          focusDay
+            ? dayTracks.filter(dg => dg.date === focusDay).flatMap(dg => dg.tracks)
+            : dayTracks.length > 0
+              ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
+              : allUserTracks.length > 0
+                ? allUserTracks.flatMap(ug => ug.tracks)
+                : userTracks
         } />
 
         {/* Hut markers */}

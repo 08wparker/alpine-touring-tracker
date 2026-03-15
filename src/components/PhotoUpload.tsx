@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { processPhoto, GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
+import { processPhoto, GeoPhoto, ActivityForPhoto, findBestActivityForPhoto, interpolatePositionOnPolyline } from '@/lib/photoGeo'
 import { uploadPhoto } from '@/lib/photoStorage'
 import { savePhoto, getRegionPhotos, deletePhoto, updatePhotoCaption } from '@/lib/firestoreCache'
 
@@ -11,6 +11,7 @@ interface PhotoUploadProps {
   onPhotoDeleted?: (photoId: string) => void
   onPhotoRenamed?: (photoId: string, newCaption: string) => void
   activities?: ActivityForPhoto[]
+  allActivities?: ActivityForPhoto[]
   region?: string
   userId?: string
   isAdmin?: boolean
@@ -22,6 +23,7 @@ export default function PhotoUpload({
   onPhotoDeleted,
   onPhotoRenamed,
   activities = [],
+  allActivities = [],
   region = '',
   userId = '',
   isAdmin = false,
@@ -33,6 +35,9 @@ export default function PhotoUpload({
   const [loadedFromFirestore, setLoadedFromFirestore] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editCaption, setEditCaption] = useState('')
+
+  // Combine all available activities for interpolation (prefer allActivities, fallback to own)
+  const interpolationActivities = allActivities.length > 0 ? allActivities : activities
 
   // Load existing photos from Firestore on mount
   useEffect(() => {
@@ -49,6 +54,46 @@ export default function PhotoUpload({
     })
   }, [region, loadedFromFirestore, onPhotosAdded])
 
+  // Re-interpolate photos that have timestamps but no coordinates when activities become available
+  useEffect(() => {
+    if (interpolationActivities.length === 0 || photos.length === 0) return
+
+    const unlocated = photos.filter(p => p.source === 'none' && p.timestamp)
+    if (unlocated.length === 0) return
+
+    let updated = false
+    const updatedPhotos = photos.map(photo => {
+      if (photo.source !== 'none' || !photo.timestamp) return photo
+
+      const ts = photo.timestamp instanceof Date ? photo.timestamp : new Date(photo.timestamp)
+      const activity = findBestActivityForPhoto(ts, interpolationActivities)
+      if (!activity) return photo
+
+      const coords = interpolatePositionOnPolyline(
+        ts,
+        activity.start_date,
+        activity.elapsed_time,
+        activity.summary_polyline
+      )
+      if (!coords) return photo
+
+      updated = true
+      return { ...photo, coordinates: coords, source: 'interpolated' as const, activityId: activity.id }
+    })
+
+    if (updated) {
+      setPhotos(updatedPhotos)
+      onPhotosAdded(updatedPhotos)
+
+      // Persist updated coordinates to Firestore
+      updatedPhotos
+        .filter(p => p.source === 'interpolated' && unlocated.some(u => u.id === p.id))
+        .forEach(p => {
+          savePhoto(p, region).catch(err => console.error('Error updating photo location:', err))
+        })
+    }
+  }, [interpolationActivities, photos.length])
+
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'))
     if (!imageFiles.length) return
@@ -58,7 +103,7 @@ export default function PhotoUpload({
       const newPhotos: GeoPhoto[] = []
 
       for (const file of imageFiles) {
-        const photo = await processPhoto(file, uploaderName, [], activities)
+        const photo = await processPhoto(file, uploaderName, [], interpolationActivities)
         photo.userId = userId
         photo.region = region
 

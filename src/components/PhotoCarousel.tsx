@@ -14,9 +14,10 @@ interface PhotoCarouselProps {
   dayOptions: DayOption[]
   tourNames?: Map<string, string>
   onFullscreen?: (photo: GeoPhoto) => void
+  onShowOnMap?: (date: string) => void
 }
 
-export default function PhotoCarousel({ photos, dayOptions, tourNames = new Map(), onFullscreen }: PhotoCarouselProps) {
+export default function PhotoCarousel({ photos, dayOptions, tourNames = new Map(), onFullscreen, onShowOnMap }: PhotoCarouselProps) {
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -192,20 +193,34 @@ export default function PhotoCarousel({ photos, dayOptions, tourNames = new Map(
             </div>
           </div>
 
-          {/* Play/pause button */}
-          {filteredPhotos.length > 1 && (
-            <button
-              onClick={() => setIsPlaying(prev => !prev)}
-              className="ml-3 flex-shrink-0 p-2 rounded-full hover:bg-gray-100 transition-colors"
-              title={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
-            >
-              {isPlaying ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              )}
-            </button>
-          )}
+          <div className="flex items-center gap-1 ml-3 flex-shrink-0">
+            {/* Show on Map button */}
+            {onShowOnMap && photoDate && dayOption && (
+              <button
+                onClick={() => onShowOnMap(photoDate)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                title="Show this day on map"
+                style={{ color: dayOption.color }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </button>
+            )}
+
+            {/* Play/pause button */}
+            {filteredPhotos.length > 1 && (
+              <button
+                onClick={() => setIsPlaying(prev => !prev)}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                title={isPlaying ? 'Pause slideshow' : 'Play slideshow'}
+              >
+                {isPlaying ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Thumbnail strip */}
