@@ -39,3 +39,4 @@ app screenshots/
 
 # Firebase secrets
 secrets/
+tsconfig.tsbuildinfo

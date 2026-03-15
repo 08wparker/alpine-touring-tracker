@@ -9,6 +9,7 @@ import { GeoPhoto } from '@/lib/photoGeo'
 import { Trip } from '@/types/trip'
 import PhotoMarker from './PhotoMarker'
 import FitBounds from './FitBounds'
+import { DayTrackGroup, UserTrackGroup } from './NorwayMap'
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -63,6 +64,7 @@ const summitIcon = new L.DivIcon({
 interface DecodedTrack {
   id: number
   name: string
+  date?: string
   polyline: [number, number][]
 }
 
@@ -71,19 +73,33 @@ interface BernerOberlandMapProps {
   photos?: GeoPhoto[]
   trip?: Trip | null
   userTracks?: DecodedTrack[]
+  allUserTracks?: UserTrackGroup[]
+  dayTracks?: DayTrackGroup[]
+  hiddenDays?: Set<string>
+  onToggleDay?: (date: string) => void
+  hiddenUserIds?: Set<string>
+  onToggleUser?: (userId: string) => void
+  tourNames?: Map<string, string>
   onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [], onFullscreenPhoto }: BernerOberlandMapProps) {
+export default function BernerOberlandMap({ className = '', photos = [], trip, userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), onFullscreenPhoto }: BernerOberlandMapProps) {
   // Center the map on the Jungfrau region
   const center: LatLngExpression = [46.55, 8.05]
   const zoom = 10
 
-  // Determine visited huts based on user track endpoints
+  // Determine visited huts based on all track endpoints
   const getVisitedHuts = () => {
     const visitedHutIds = new Set<string>()
 
-    userTracks.forEach(track => {
+    // Check day tracks first, then allUserTracks, then fallback to userTracks
+    const allTracks = dayTracks.length > 0
+      ? dayTracks.flatMap(dg => dg.tracks)
+      : allUserTracks.length > 0
+        ? allUserTracks.flatMap(ug => ug.tracks)
+        : userTracks
+
+    allTracks.forEach(track => {
       if (track.polyline.length > 0) {
         const endPoint = track.polyline[track.polyline.length - 1]
 
@@ -128,48 +144,6 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
 
   return (
     <div className={`${className} relative`}>
-      {/* Route Legend */}
-      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
-        <h4 className="font-bold mb-2">Map Features</h4>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-orange-500"></div>
-            <span>Real GPS Tracks</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-gray-500" style={{backgroundImage: 'repeating-linear-gradient(to right, #6b7280 0px, #6b7280 3px, transparent 3px, transparent 6px)'}}></div>
-            <span>Regional Border</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L22 20H2L12 2Z" fill="#dc2626" stroke="#ffffff" strokeWidth="2"/>
-                <circle cx="12" cy="12" r="2" fill="white"/>
-              </svg>
-            </div>
-            <span>Major Summits</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#2563eb" stroke="#ffffff" strokeWidth="2"/>
-                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
-              </svg>
-            </div>
-            <span>Huts You Stayed At</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#94a3b8" stroke="#ffffff" strokeWidth="2"/>
-                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
-              </svg>
-            </div>
-            <span>Other Huts</span>
-          </div>
-        </div>
-      </div>
-
       <MapContainer
         center={center}
         zoom={zoom}
@@ -181,8 +155,14 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Auto-zoom to fit tracks */}
-        <FitBounds tracks={userTracks} />
+        {/* Auto-zoom to fit all visible tracks */}
+        <FitBounds tracks={
+          dayTracks.length > 0
+            ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
+            : allUserTracks.length > 0
+              ? allUserTracks.flatMap(ug => ug.tracks)
+              : userTracks
+        } />
 
         {/* Hut markers */}
         {bernerOberlandHuts.map((hut: any) => {
@@ -266,8 +246,48 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
           </Popup>
         </Polyline>
 
-        {/* User Strava tracks */}
-        {userTracks.map(track => (
+        {/* Day-colored Strava tracks */}
+        {dayTracks.filter(dg => !hiddenDays.has(dg.date)).map(dayGroup =>
+          dayGroup.tracks.map(track => (
+            <Polyline
+              key={`day-${track.id}`}
+              positions={track.polyline}
+              color={dayGroup.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: dayGroup.color }}>{dayGroup.label}</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
+
+        {/* Fallback: user-colored tracks (when no day data) */}
+        {dayTracks.length === 0 && allUserTracks.filter(ug => !hiddenUserIds.has(ug.userId)).map(userGroup =>
+          userGroup.tracks.map(track => (
+            <Polyline
+              key={`${userGroup.userId}-${track.id}`}
+              positions={track.polyline}
+              color={userGroup.color}
+              weight={4}
+              opacity={0.9}
+            >
+              <Popup>
+                <div className="p-2">
+                  <h3 className="font-bold">{track.name}</h3>
+                  <p className="text-sm" style={{ color: userGroup.color }}>by {userGroup.userName}</p>
+                </div>
+              </Popup>
+            </Polyline>
+          ))
+        )}
+
+        {/* Legacy single-user tracks (fallback) */}
+        {allUserTracks.length === 0 && userTracks.map(track => (
           <Polyline
             key={`user-${track.id}`}
             positions={track.polyline}
@@ -285,9 +305,25 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
         ))}
 
         {/* Photo markers */}
-        {photos.filter(p => p.coordinates).map(photo => (
-          <PhotoMarker key={photo.id} photo={photo} onFullscreen={onFullscreenPhoto} />
-        ))}
+        {photos.filter(p => p.coordinates).map(photo => {
+          const photoDate = photo.timestamp
+            ? new Date(photo.timestamp).toISOString().split('T')[0]
+            : undefined
+          const dayGroup = photoDate ? dayTracks.find(dg => dg.date === photoDate) : undefined
+          const tourName = photoDate && tourNames.get(photoDate)
+            ? `${tourNames.get(photoDate)} — ${dayGroup?.label || photoDate}`
+            : dayGroup?.label
+
+          return (
+            <PhotoMarker
+              key={photo.id}
+              photo={photo}
+              tourName={tourName}
+              color={dayGroup?.color}
+              onFullscreen={onFullscreenPhoto}
+            />
+          )
+        })}
 
         {/* Trip participant tracks */}
         {trip?.participants.map(participant =>
