@@ -80,10 +80,11 @@ interface NorwayMapProps {
   hiddenUserIds?: Set<string>
   onToggleUser?: (userId: string) => void
   tourNames?: Map<string, string>  // date -> custom tour name
+  focusDay?: string | null
   onFullscreenPhoto?: (photo: GeoPhoto) => void
 }
 
-export default function NorwayMap({ className = '', photos = [], userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), onFullscreenPhoto }: NorwayMapProps) {
+export default function NorwayMap({ className = '', photos = [], userTracks = [], allUserTracks = [], dayTracks = [], hiddenDays = new Set(), onToggleDay, hiddenUserIds = new Set(), onToggleUser, tourNames = new Map(), focusDay, onFullscreenPhoto }: NorwayMapProps) {
   // Center on Romsdalsfjorden area
   const center: LatLngExpression = [62.52, 7.65]
   const zoom = 9
@@ -113,13 +114,15 @@ export default function NorwayMap({ className = '', photos = [], userTracks = []
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Auto-zoom to fit all visible tracks */}
+        {/* Auto-zoom to fit visible tracks (or focused day) */}
         <FitBounds tracks={
-          dayTracks.length > 0
-            ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
-            : allUserTracks.length > 0
-              ? allUserTracks.flatMap(ug => ug.tracks)
-              : userTracks
+          focusDay
+            ? dayTracks.filter(dg => dg.date === focusDay).flatMap(dg => dg.tracks)
+            : dayTracks.length > 0
+              ? dayTracks.filter(dg => !hiddenDays.has(dg.date)).flatMap(dg => dg.tracks)
+              : allUserTracks.length > 0
+                ? allUserTracks.flatMap(ug => ug.tracks)
+                : userTracks
         } />
 
         {/* Dock markers */}

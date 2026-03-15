@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { GeoPhoto, ActivityForPhoto } from '@/lib/photoGeo'
 import { StravaAPI, StravaActivity } from '@/lib/strava'
@@ -53,11 +53,14 @@ export default function BernerOberland() {
   const [allUserTracks, setAllUserTracks] = useState<UserTrackGroup[]>([])
   const [allDecodedTracks, setAllDecodedTracks] = useState<DecodedTrack[]>([])
   const [currentUserActivities, setCurrentUserActivities] = useState<ActivityForPhoto[]>([])
+  const [allActivitiesForPhotos, setAllActivitiesForPhotos] = useState<ActivityForPhoto[]>([])
   const [hiddenDays, setHiddenDays] = useState<Set<string>>(new Set())
   const [fullscreenPhoto, setFullscreenPhoto] = useState<GeoPhoto | null>(null)
   const [tourNames, setTourNames] = useState<Map<string, string>>(new Map())
   const [editingDay, setEditingDay] = useState<string | null>(null)
   const [editDayName, setEditDayName] = useState('')
+  const [focusDay, setFocusDay] = useState<string | null>(null)
+  const mapRef = useRef<HTMLDivElement>(null)
 
   const currentUserId = session?.user?.id || ''
   const isAdmin = !!(currentUserId && (
@@ -101,6 +104,20 @@ export default function BernerOberland() {
 
       setAllUserTracks(trackGroups)
       setAllDecodedTracks(allTracks)
+
+      // Collect all Berner activities for photo interpolation
+      const allActs: ActivityForPhoto[] = allUsers.flatMap(user =>
+        user.activities.filter(isInBerner)
+          .filter(a => a.map?.summary_polyline)
+          .map(a => ({
+            id: a.id,
+            name: a.name,
+            start_date: a.start_date,
+            elapsed_time: a.elapsed_time,
+            summary_polyline: a.map.summary_polyline,
+          }))
+      )
+      setAllActivitiesForPhotos(allActs)
 
       if (session?.user?.id) {
         const currentUser = allUsers.find(u => u.userId === session.user!.id)
@@ -223,6 +240,16 @@ export default function BernerOberland() {
     setEditingDay(null)
   }
 
+  const handleShowOnMap = useCallback((date: string) => {
+    // Show only this day, hide all others
+    setHiddenDays(new Set(dayTracks.filter(dg => dg.date !== date).map(dg => dg.date)))
+    setFocusDay(date)
+    // Scroll to map
+    mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Clear focus after map has time to zoom
+    setTimeout(() => setFocusDay(null), 1000)
+  }, [dayTracks])
+
   const getTourNameForPhoto = useCallback((photo: GeoPhoto): string | undefined => {
     if (!photo.timestamp) return undefined
     const photoDate = new Date(photo.timestamp).toISOString().split('T')[0]
@@ -249,7 +276,7 @@ export default function BernerOberland() {
       </div>
 
       {/* Interactive Map */}
-      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
+      <div ref={mapRef} className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8">
         <h2 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">Regional Map</h2>
         <div className="h-[350px] md:h-[500px] rounded-lg overflow-hidden">
           <BernerOberlandMap
@@ -261,6 +288,7 @@ export default function BernerOberland() {
             hiddenDays={hiddenDays}
             onToggleDay={handleToggleDay}
             tourNames={tourNames}
+            focusDay={focusDay}
             onFullscreenPhoto={setFullscreenPhoto}
           />
         </div>
@@ -332,6 +360,7 @@ export default function BernerOberland() {
             dayOptions={dayTracks.map(dg => ({ date: dg.date, label: dg.label, color: dg.color }))}
             tourNames={tourNames}
             onFullscreen={setFullscreenPhoto}
+            onShowOnMap={handleShowOnMap}
           />
         </div>
       )}
@@ -354,6 +383,7 @@ export default function BernerOberland() {
           onPhotoDeleted={handlePhotoDeleted}
           onPhotoRenamed={handlePhotoRenamed}
           activities={currentUserActivities}
+          allActivities={allActivitiesForPhotos}
           region="berner-oberland"
           userId={currentUserId}
           isAdmin={isAdmin}
