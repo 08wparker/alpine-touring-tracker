@@ -144,48 +144,6 @@ export default function BernerOberlandMap({ className = '', photos = [], trip, u
 
   return (
     <div className={`${className} relative`}>
-      {/* Route Legend */}
-      <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md z-[1000] text-sm">
-        <h4 className="font-bold mb-2">Map Features</h4>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-orange-500" style={{backgroundImage: dayTracks.length > 0 ? `linear-gradient(to right, #f97316, #3b82f6, #10b981)` : undefined}}></div>
-            <span>GPS Tracks {dayTracks.length > 0 ? '(by day)' : ''}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-gray-500" style={{backgroundImage: 'repeating-linear-gradient(to right, #6b7280 0px, #6b7280 3px, transparent 3px, transparent 6px)'}}></div>
-            <span>Regional Border</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L22 20H2L12 2Z" fill="#dc2626" stroke="#ffffff" strokeWidth="2"/>
-                <circle cx="12" cy="12" r="2" fill="white"/>
-              </svg>
-            </div>
-            <span>Major Summits</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#2563eb" stroke="#ffffff" strokeWidth="2"/>
-                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
-              </svg>
-            </div>
-            <span>Huts You Stayed At</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12L12 3L21 12V20C21 20.5523 20.5523 21 20 21H15V16H9V21H4C3.44772 21 3 20.5523 3 20V12Z" fill="#94a3b8" stroke="#ffffff" strokeWidth="2"/>
-                <path d="M9 9H15V13H9V9Z" fill="#ffffff"/>
-              </svg>
-            </div>
-            <span>Other Huts</span>
-          </div>
-        </div>
-      </div>
-
       <MapContainer
         center={center}
         zoom={zoom}
